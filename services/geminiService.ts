@@ -76,7 +76,7 @@ export const runScan = async (
 ): Promise<ScanResult> => {
   
   // Directly initialize using process.env.API_KEY within the function to ensure capture.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
   const modelName = config.model === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
 
   const systemInstruction = `You are WebSec-AI, a Senior Offensive Security Auditor.
