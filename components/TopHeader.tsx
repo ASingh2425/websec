@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, ChevronDown, Menu, User, CheckCircle, AlertTriangle, Info, X, Zap } from 'lucide-react';
 
@@ -25,26 +26,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, subtitle, username 
     {
       id: '1',
       title: 'Uplink Synchronized',
-      message: 'Neural security link established with central terminal.',
+      message: 'Secure link established with central intelligence node.',
       type: 'success',
       time: 'Just now',
       unread: true
-    },
-    {
-      id: '2',
-      title: 'Credits Available',
-      message: 'You have 3 guest audit credits remaining.',
-      type: 'info',
-      time: '5m ago',
-      unread: true
-    },
-    {
-      id: '3',
-      title: 'Security Advisory',
-      message: 'Patch for CVE-2024-3094 released. Monitor active.',
-      type: 'warning',
-      time: '1h ago',
-      unread: false
     }
   ]);
 
@@ -88,7 +73,12 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, subtitle, username 
         </button>
         <div>
           <h2 className="text-lg md:text-xl font-display font-bold text-cyber-text-main tracking-tight">{title}</h2>
-          {subtitle && <p className="text-cyber-text-muted text-xs font-medium hidden sm:block">{subtitle}</p>}
+          <div className="flex items-center gap-2 mt-0.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"></div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80">
+              Uplink Secure
+            </span>
+          </div>
         </div>
       </div>
 
@@ -104,7 +94,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, subtitle, username 
               )}
            </button>
 
-           {/* Notification Dropdown */}
            {showNotifications && (
              <div className="absolute right-0 mt-3 w-80 md:w-96 bg-cyber-card border border-cyber-border rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up origin-top-right ring-1 ring-cyber-border/50">
                 <div className="p-4 bg-cyber-cardHighlight/50 border-b border-cyber-border flex justify-between items-center backdrop-blur-md">
@@ -148,12 +137,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, subtitle, username 
                       ))}
                     </div>
                   )}
-                </div>
-
-                <div className="p-3 border-t border-cyber-border bg-cyber-cardHighlight/20">
-                   <button className="w-full py-2 text-[10px] font-bold text-cyber-text-muted hover:text-cyber-text-main uppercase tracking-[0.2em] transition-colors">
-                      View System Logs
-                   </button>
                 </div>
              </div>
            )}
