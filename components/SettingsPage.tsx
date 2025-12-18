@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Shield, Trash2, Key, Download, CreditCard, Check, AlertCircle, Smartphone, Palette, Bell, Monitor, Zap, BrainCircuit, HardDrive } from 'lucide-react';
+import { Shield, Trash2, Key, Check, Palette, HardDrive } from 'lucide-react';
 import { securityService } from '../services/securityService';
 import { PlanConfig, AppSettings } from '../types';
 
@@ -12,7 +13,6 @@ interface SettingsPageProps {
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser, onClearHistory, settings, onSettingsChange }) => {
   const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
   const [plan, setPlan] = useState<PlanConfig | null>(null);
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [loadingPass, setLoadingPass] = useState(false);
@@ -65,10 +65,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser, onClear
               <button onClick={() => handleToggle('highContrast')} className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${settings.highContrast ? 'border-cyber-primary bg-cyber-primary/5' : 'border-cyber-border bg-cyber-bg'}`}>
                 <span className="text-xs font-bold text-cyber-text-main">High Contrast Mode</span>
                 {settings.highContrast && <Check size={14} className="text-cyber-primary" />}
-              </button>
-              <button onClick={() => handleToggle('soundEffects')} className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${settings.soundEffects ? 'border-cyber-primary bg-cyber-primary/5' : 'border-cyber-border bg-cyber-bg'}`}>
-                <span className="text-xs font-bold text-cyber-text-main">Sound Effects</span>
-                {settings.soundEffects && <Check size={14} className="text-cyber-primary" />}
               </button>
             </div>
           </div>
