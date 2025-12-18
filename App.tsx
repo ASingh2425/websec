@@ -72,17 +72,20 @@ const App: React.FC = () => {
     const sanitizedTarget = securityService.sanitizeInput(target);
     const activeModules = modules.filter(m => m.enabled).map(m => m.name);
     
-    setScanLog([`[${new Date().toLocaleTimeString()}] INITIATING_SCAN: ${sanitizedTarget.slice(0,30)}...`]);
+    setScanLog([`[${new Date().toLocaleTimeString()}] INITIATING_AUDIT: ${sanitizedTarget.slice(0,30)}...`]);
     
     try {
       const result = await runScan(sanitizedTarget, type, activeModules, config);
-      setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] SUCCESS: Scan Completed.`]);
+      setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] SUCCESS: Audit Intelligence Synchronized.`]);
+      
       const timestampedResult = { ...result, timestamp: new Date().toISOString() };
       setHistory(prev => [timestampedResult, ...prev].slice(0, 10));
       await securityService.saveUserHistory([timestampedResult, ...history]);
       setScanResult(timestampedResult);
     } catch (err: any) {
-      setError(err.message || "Uplink Failed. Check connectivity.");
+      const msg = err.message || "Uplink Failed. Intelligence engine unreachable.";
+      setError(msg);
+      setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] CRITICAL_ERROR: ${msg}`]);
     } finally {
       setIsScanning(false);
     }
@@ -147,7 +150,9 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 <div className="animate-fade-in-up">
-                   <button onClick={() => setScanResult(null)} className="mb-6 text-sm text-cyber-text-secondary hover:text-cyber-primary flex items-center gap-2 px-4 py-2 rounded-lg border border-cyber-border">← New Scan</button>
+                   <button onClick={() => setScanResult(null)} className="mb-6 text-sm text-cyber-text-secondary hover:text-cyber-primary flex items-center gap-2 px-4 py-2 rounded-lg border border-cyber-border transition-colors">
+                     ← New Audit
+                   </button>
                    <Dashboard data={scanResult} />
                 </div>
               )
