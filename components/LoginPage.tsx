@@ -1,14 +1,50 @@
-import React, { useState } from 'react';
-import { Shield, ArrowRight, UserCheck, AlertCircle, Info, Zap } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { Shield, ArrowRight, UserCheck, AlertCircle, Info, Zap, Key, ExternalLink, CheckCircle } from 'lucide-react';
 import { securityService } from '../services/securityService';
 
 interface LoginPageProps {
   onLogin: () => void;
 }
 
+// Define the interface for aistudio based on usage in guidelines
+interface AIStudio {
+  hasSelectedApiKey(): Promise<boolean>;
+  openSelectKey(): Promise<void>;
+}
+
+// Fixed declaration to match existing global AIStudio type and modifiers
+declare global {
+  interface Window {
+    /* Removed readonly to match the existing pre-configured global definition and avoid modifier mismatch */
+    aistudio: AIStudio;
+  }
+}
+
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hasKey, setHasKey] = useState(false);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      // Use window.aistudio to check for API key selection
+      const selected = await window.aistudio.hasSelectedApiKey();
+      setHasKey(selected);
+    };
+    checkKey();
+  }, []);
+
+  const handleSelectKey = async () => {
+    try {
+      // Open the key selection dialog
+      await window.aistudio.openSelectKey();
+      setHasKey(true);
+      setError('');
+    } catch (e) {
+      setError('Failed to open key selection dialog.');
+    }
+  };
 
   const handleGuestLogin = async () => {
     setLoading(true);
@@ -20,11 +56,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       if (isValid) {
         onLogin();
       } else {
-        setError('Uplink rejected. Terminal identity mismatch.');
+        setError('Authentication system rejected the session uplink.');
         setLoading(false);
       }
     } catch (e) {
-      console.error("Login exception:", e);
       setError('Connection to security gateway timed out.');
       setLoading(false);
     }
@@ -47,17 +82,50 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     </div>
                     <h2 className="text-3xl font-display font-bold text-cyber-text-main mb-2 tracking-tight">WebSec Terminal</h2>
                     <p className="text-cyber-text-secondary text-sm font-medium flex items-center justify-center gap-2">
-                      <Zap size={14} className="text-emerald-400" /> Authorized Systems Nominal
+                      <Zap size={14} className="text-emerald-400" /> Authorized System Access
                     </p>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-6">
+                    {!hasKey ? (
+                      <div className="space-y-4">
+                        <div className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Key size={18} className="text-amber-400 shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-200/80 leading-relaxed">
+                              Pro Intelligence features require a valid API key. Please select a key from a paid GCP project to continue.
+                            </p>
+                          </div>
+                          <a 
+                            href="https://ai.google.dev/gemini-api/docs/billing" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-cyber-primary hover:underline flex items-center gap-1 font-bold uppercase tracking-widest"
+                          >
+                            Billing Documentation <ExternalLink size={10} />
+                          </a>
+                        </div>
+
+                        <button 
+                          onClick={handleSelectKey}
+                          className="w-full bg-cyber-cardHighlight hover:bg-cyber-primary/20 text-cyber-text-main font-bold py-4 rounded-xl border border-cyber-border transition-all flex items-center justify-center gap-3 group"
+                        >
+                          <Key size={18} className="text-cyber-primary" />
+                          <span className="tracking-widest text-sm font-display uppercase">Configure Secure Key</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3 text-emerald-400 text-xs font-bold">
+                        <CheckCircle size={16} /> Uplink Identity Verified
+                      </div>
+                    )}
+
                     <div className="p-5 bg-cyber-cardHighlight/50 border border-cyber-border rounded-xl space-y-3">
                         <div className="flex items-start gap-3">
                             <Info size={18} className="text-cyber-primary shrink-0 mt-0.5" />
                             <p className="text-xs text-cyber-text-secondary leading-relaxed">
-                              You are accessing the platform as an <span className="text-cyber-text-main font-bold">Anonymous Auditor</span>. 
-                              Local storage will be used to maintain session persistence.
+                              Accessing as <span className="text-cyber-text-main font-bold">Anonymous Auditor</span>. 
+                              Local storage vault will be used for session persistence.
                             </p>
                         </div>
                     </div>
@@ -76,13 +144,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                         {loading ? (
                           <div className="flex items-center gap-3">
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            <span className="animate-pulse tracking-widest uppercase text-xs">Syncing Session...</span>
+                            <span className="animate-pulse tracking-widest uppercase text-xs">Syncing Uplink...</span>
                           </div>
                         ) : (
                           <>
                             <span className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
                             <UserCheck size={20} className="relative z-10" />
-                            <span className="tracking-widest text-sm font-display uppercase relative z-10">Initialize Guest Access</span>
+                            <span className="tracking-widest text-sm font-display uppercase relative z-10">Initialize Terminal Access</span>
                             <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform opacity-70" />
                           </>
                         )}
