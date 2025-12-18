@@ -1,4 +1,3 @@
-
 export enum Severity {
   CRITICAL = 'Critical',
   HIGH = 'High',
@@ -113,7 +112,6 @@ export interface ScanConfig {
 
 export interface AppSettings {
   highContrast: boolean;
-  soundEffects: boolean;
   telemetry: boolean;
 }
 
