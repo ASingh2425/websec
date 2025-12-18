@@ -141,3 +141,7 @@ export interface UserSubscription {
   lastResetDate: string; // ISO Date string
   expiryDate?: string; // For monthly subs
 }
+
+// Global interface definitions are removed here as they are pre-configured in the environment,
+// which prevents duplicate identifier errors for window.aistudio methods.
+
