@@ -137,4 +137,3 @@ export interface UserSubscription {
   lastResetDate: string; 
   expiryDate?: string; 
 }
-
