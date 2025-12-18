@@ -1,10 +1,10 @@
+
 import { AppSettings } from '../types';
 
 const SETTINGS_KEY = 'websec_settings';
 
 const defaultSettings: AppSettings = {
   highContrast: false,
-  soundEffects: true,
   telemetry: false,
 };
 
