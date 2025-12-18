@@ -111,14 +111,11 @@ export interface ScanConfig {
   model: 'flash' | 'pro' | 'lite';
 }
 
-// Added AppSettings interface to fix the import error in SettingsPage
 export interface AppSettings {
   highContrast: boolean;
   soundEffects: boolean;
   telemetry: boolean;
 }
-
-// --- MONETIZATION TYPES ---
 
 export type PlanType = 'free' | 'onetime_350' | 'onetime_500' | 'sub_1899' | 'sub_2999';
 
@@ -126,7 +123,7 @@ export interface PlanConfig {
   id: PlanType;
   name: string;
   priceDisplay: string;
-  maxScans: number; // -1 for unlimited
+  maxScans: number; 
   resetPeriod?: 'daily' | 'monthly' | 'never';
   allowedModels: ('flash' | 'pro' | 'lite')[];
   allowedModes: ScanAggressiveness[];
@@ -139,6 +136,7 @@ export interface PlanConfig {
 export interface UserSubscription {
   planId: PlanType;
   scansRemaining: number;
-  lastResetDate: string; // ISO Date string
-  expiryDate?: string; // For monthly subs
+  lastResetDate: string; 
+  expiryDate?: string; 
 }
+
