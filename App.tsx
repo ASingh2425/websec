@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
@@ -19,6 +20,7 @@ import { runScan } from './services/geminiService';
 import { securityService } from './services/securityService';
 import { settingsService } from './services/settingsService';
 import { ScanResult, ScanModule, ScanConfig, AppSettings } from './types';
+import { playSound } from './utils/audio';
 import { AlertCircle } from 'lucide-react';
 
 type AppState = 'home' | 'about' | 'features' | 'contact' | 'login' | 'dashboard';
@@ -29,7 +31,6 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('scanner');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<string>('Guest');
-  
   const [appSettings, setAppSettings] = useState<AppSettings>(settingsService.getSettings());
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -55,15 +56,6 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
-  const handleSettingsChange = (newSettings: Partial<AppSettings>) => {
-    setAppSettings(prev => {
-        const updated = { ...prev, ...newSettings };
-        settingsService.saveSettings(updated);
-        settingsService.applySettings(updated);
-        return updated;
-    });
-  };
-
   const handleScan = async (target: string, type: 'url' | 'code', modules: ScanModule[], config: ScanConfig) => {
     setIsScanning(true);
     setError(null);
@@ -76,16 +68,18 @@ const App: React.FC = () => {
     
     try {
       const result = await runScan(sanitizedTarget, type, activeModules, config);
-      setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] SUCCESS: Audit Intelligence Synchronized.`]);
+      setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] SUCCESS: Intelligence Synchronized.`]);
       
-      const timestampedResult = { ...result, timestamp: new Date().toISOString() };
-      setHistory(prev => [timestampedResult, ...prev].slice(0, 10));
-      await securityService.saveUserHistory([timestampedResult, ...history]);
-      setScanResult(timestampedResult);
+      const newHistory = [result, ...history].slice(0, 10);
+      setHistory(newHistory);
+      await securityService.saveUserHistory(newHistory);
+      setScanResult(result);
+      if (appSettings.soundEffects) playSound('success');
     } catch (err: any) {
-      const msg = err.message || "Uplink Failed. Intelligence engine unreachable.";
+      let msg = err.message || "Uplink Failed. Intelligence engine unreachable.";
       setError(msg);
       setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] CRITICAL_ERROR: ${msg}`]);
+      if (appSettings.soundEffects) playSound('error');
     } finally {
       setIsScanning(false);
     }
@@ -99,15 +93,10 @@ const App: React.FC = () => {
     setHistory([]);
   };
 
-  const getPageTitle = () => {
-    switch (currentView) {
-      case 'intelligence': return 'Threat Intelligence';
-      case 'monitor': return 'Live Monitor';
-      case 'history': return 'Audit History';
-      case 'settings': return 'System Settings';
-      case 'help': return 'Help & Documentation';
-      default: return 'Security Dashboard';
-    }
+  const handleDeleteHistoryItem = async (timestamp: string) => {
+    const newHistory = history.filter(h => h.timestamp !== timestamp);
+    setHistory(newHistory);
+    await securityService.saveUserHistory(newHistory);
   };
 
   if (appState !== 'dashboard') {
@@ -125,7 +114,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-cyber-bg overflow-hidden font-sans text-cyber-text-main selection:bg-cyber-primary relative">
+    <div className="flex h-screen bg-cyber-bg overflow-hidden font-sans text-cyber-text-main relative">
       {isScanning && <ScanLoadingScreen logs={scanLog} />}
       <Sidebar 
         currentView={currentView} 
@@ -135,18 +124,23 @@ const App: React.FC = () => {
         onLogout={handleLogout} 
       />
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        <TopHeader title={getPageTitle()} username={currentUser} onMenuClick={() => setIsSidebarOpen(true)} />
+        <TopHeader title={currentView === 'scanner' ? 'Security Dashboard' : 'System Information'} username={currentUser} onMenuClick={() => setIsSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
            {currentView === 'intelligence' && <Intelligence />}
            {currentView === 'monitor' && <LiveMonitor />}
-           {currentView === 'history' && <History history={history} onLoad={(r) => { setScanResult(r); setCurrentView('scanner'); }} onClear={() => setHistory([])} onDelete={() => {}} />}
-           {currentView === 'settings' && <SettingsPage settings={appSettings} onSettingsChange={handleSettingsChange} currentUser={currentUser} onClearHistory={() => setHistory([])} />}
+           {currentView === 'history' && <History history={history} onLoad={(r) => { setScanResult(r); setCurrentView('scanner'); }} onClear={() => setHistory([])} onDelete={handleDeleteHistoryItem} />}
+           {currentView === 'settings' && <SettingsPage settings={appSettings} onSettingsChange={(s) => setAppSettings(p => ({...p, ...s}))} currentUser={currentUser} onClearHistory={() => setHistory([])} />}
            {currentView === 'help' && <HelpPage />}
            {currentView === 'scanner' && (
               !scanResult ? (
                 <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
                    <ScanForm onScan={handleScan} isScanning={isScanning} />
-                   {error && <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 flex items-center gap-3"><AlertCircle /> <p>{error}</p></div>}
+                   {error && (
+                     <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 flex items-center gap-3">
+                        <AlertCircle size={20} className="shrink-0" />
+                        <p className="text-sm font-medium">{error}</p>
+                     </div>
+                   )}
                 </div>
               ) : (
                 <div className="animate-fade-in-up">
