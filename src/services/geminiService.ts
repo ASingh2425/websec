@@ -2,92 +2,25 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ScanResult, Severity, ScanConfig } from "../types";
 
+// Professional security-focused schema
 const vulnerabilitySchema: Schema = {
   type: Type.OBJECT,
   properties: {
     id: { type: Type.STRING },
     title: { type: Type.STRING },
     severity: { type: Type.STRING, enum: [Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW, Severity.INFO] },
-    description: { type: Type.STRING, description: "Professional technical description. detailed and precise." },
-    affectedUrl: { type: Type.STRING, description: "Exact location: URL + Parameter + HTTP Method" },
-    impact: { type: Type.STRING, description: "Business and Technical Impact Analysis." },
-    fixCode: { type: Type.STRING },
-    fixExplanation: { type: Type.STRING, description: "Technical remediation steps." },
-    proofOfConcept: { type: Type.STRING, description: "MANDATORY: Actual payload used (e.g., ' OR 1=1 --), curl command, or HTTP response snippet proving the flaw." },
-    cwe: { type: Type.STRING, description: "CWE ID (e.g., CWE-89)" },
-    capec: { type: Type.STRING, description: "CAPEC ID (e.g., CAPEC-66)" },
-    cvssScore: { type: Type.NUMBER, description: "CVSS v3.1 Base Score (0.0 - 10.0)" },
-    cvssVector: { type: Type.STRING, description: "CVSS Vector String" }
+    description: { type: Type.STRING, description: "Detailed technical explanation of the flaw." },
+    affectedUrl: { type: Type.STRING, description: "URL, Parameter, and HTTP Method (e.g., POST /api/v1/user [id])" },
+    impact: { type: Type.STRING, description: "Detailed impact on Confidentiality, Integrity, and Availability." },
+    fixCode: { type: Type.STRING, description: "Production-ready secure code or configuration snippet." },
+    fixExplanation: { type: Type.STRING, description: "Detailed steps for developers to remediate the flaw." },
+    proofOfConcept: { type: Type.STRING, description: "MANDATORY: Exact payload, curl command, or HTTP request proving the vulnerability." },
+    cwe: { type: Type.STRING, description: "CWE Identifier (e.g., CWE-89)" },
+    capec: { type: Type.STRING, description: "CAPEC Identifier (e.g., CAPEC-66)" },
+    cvssScore: { type: Type.NUMBER, description: "CVSS v3.1 Base Score" },
+    cvssVector: { type: Type.STRING, description: "CVSS v3.1 Vector String" }
   },
   required: ["id", "title", "severity", "description", "affectedUrl", "impact", "fixCode", "fixExplanation", "proofOfConcept", "cvssScore"]
-};
-
-const probableVulnerabilitySchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    category: { type: Type.STRING, description: "e.g. Injection, Access Control, Business Logic" },
-    title: { type: Type.STRING, description: "Specific flaw name e.g. Blind SQL Injection" },
-    likelihood: { type: Type.STRING, enum: ["High", "Medium", "Low"] },
-    location: { type: Type.STRING, description: "Suspected endpoint or parameter" },
-    reasoning: { type: Type.STRING, description: "Heuristic analysis: Why is this suspected? e.g. 'Numeric ID in URL suggests IDOR'" },
-    verificationSteps: { type: Type.STRING, description: "Specific manual or tool-based steps to confirm existence." }
-  },
-  required: ["category", "title", "likelihood", "location", "reasoning", "verificationSteps"]
-};
-
-const techStackSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    name: { type: Type.STRING },
-    category: { type: Type.STRING, enum: ["Frontend", "Backend", "Database", "Server", "Other"] },
-    version: { type: Type.STRING }
-  },
-  required: ["name", "category"]
-};
-
-const headerSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    name: { type: Type.STRING },
-    value: { type: Type.STRING },
-    status: { type: Type.STRING, enum: ["secure", "warning", "missing"] }
-  },
-  required: ["name", "value", "status"]
-};
-
-const portSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    port: { type: Type.NUMBER },
-    protocol: { type: Type.STRING },
-    service: { type: Type.STRING },
-    state: { type: Type.STRING, enum: ["open", "closed", "filtered"] },
-    version: { type: Type.STRING },
-    risk: { type: Type.STRING, enum: ["Safe", "Low", "Medium", "High", "Critical"] },
-    reason: { type: Type.STRING }
-  },
-  required: ["port", "protocol", "service", "state", "risk"]
-};
-
-const metricsSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    authScore: { type: Type.NUMBER, description: "0-100 Score" },
-    dbScore: { type: Type.NUMBER, description: "0-100 Score" },
-    networkScore: { type: Type.NUMBER, description: "0-100 Score" },
-    clientScore: { type: Type.NUMBER, description: "0-100 Score" },
-    complianceScore: { type: Type.NUMBER, description: "0-100 Score" }
-  },
-  required: ["authScore", "dbScore", "networkScore", "clientScore", "complianceScore"]
-};
-
-const owaspSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    category: { type: Type.STRING },
-    count: { type: Type.NUMBER }
-  },
-  required: ["category", "count"]
 };
 
 const scanResultSchema: Schema = {
@@ -97,120 +30,109 @@ const scanResultSchema: Schema = {
     scanType: { type: Type.STRING, enum: ["url", "code"] },
     siteDescription: { type: Type.STRING },
     summary: { type: Type.STRING },
-    riskScore: { type: Type.NUMBER, description: "Overall Security Score (0-100). 100 is Safe. 0 is Critical Risk." },
-    maturityLevel: { type: Type.STRING, enum: ["Hardened", "Enterprise", "Standard", "Vulnerable"], description: "The calibrated security maturity of the target." },
-    securityMetrics: metricsSchema,
-    owaspDistribution: { type: Type.ARRAY, items: owaspSchema },
-    techStack: { type: Type.ARRAY, items: techStackSchema },
+    riskScore: { type: Type.NUMBER, description: "Overall health score 0-100." },
+    maturityLevel: { type: Type.STRING, enum: ["Hardened", "Enterprise", "Standard", "Vulnerable"] },
+    securityMetrics: {
+        type: Type.OBJECT,
+        properties: {
+            authScore: { type: Type.NUMBER },
+            dbScore: { type: Type.NUMBER },
+            networkScore: { type: Type.NUMBER },
+            clientScore: { type: Type.NUMBER },
+            complianceScore: { type: Type.NUMBER }
+        },
+        required: ["authScore", "dbScore", "networkScore", "clientScore", "complianceScore"]
+    },
+    owaspDistribution: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { category: { type: Type.STRING }, count: { type: Type.NUMBER } }, required: ["category", "count"] } },
+    techStack: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, category: { type: Type.STRING }, version: { type: Type.STRING } }, required: ["name", "category"] } },
     vulnerabilities: { type: Type.ARRAY, items: vulnerabilitySchema },
-    probableVulnerabilities: { type: Type.ARRAY, items: probableVulnerabilitySchema },
-    headers: { type: Type.ARRAY, items: headerSchema },
-    ports: { type: Type.ARRAY, items: portSchema },
+    probableVulnerabilities: { 
+      type: Type.ARRAY, 
+      items: { 
+        type: Type.OBJECT, 
+        properties: { 
+          category: { type: Type.STRING }, 
+          title: { type: Type.STRING }, 
+          likelihood: { type: Type.STRING, enum: ["High", "Medium", "Low"] }, 
+          location: { type: Type.STRING }, 
+          reasoning: { type: Type.STRING }, 
+          verificationSteps: { type: Type.STRING } 
+        }, 
+        required: ["category", "title", "likelihood", "location", "reasoning", "verificationSteps"] 
+      } 
+    },
+    headers: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, value: { type: Type.STRING }, status: { type: Type.STRING, enum: ["secure", "warning", "missing"] } }, required: ["name", "value", "status"] } },
+    ports: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { port: { type: Type.NUMBER }, protocol: { type: Type.STRING }, service: { type: Type.STRING }, state: { type: Type.STRING, enum: ["open", "closed", "filtered"] }, risk: { type: Type.STRING, enum: ["Safe", "Low", "Medium", "High", "Critical"] } }, required: ["port", "protocol", "service", "state", "risk"] } },
     sitemap: { type: Type.ARRAY, items: { type: Type.STRING } },
     apiEndpoints: { type: Type.ARRAY, items: { type: Type.STRING } },
-    executiveSummary: { type: Type.STRING, description: "Enterprise-grade executive summary of the risk profile." }
+    executiveSummary: { type: Type.STRING, description: "Strategic summary for stakeholders." }
   },
   required: ["target", "scanType", "siteDescription", "summary", "riskScore", "maturityLevel", "securityMetrics", "owaspDistribution", "techStack", "vulnerabilities", "probableVulnerabilities", "headers", "ports", "sitemap", "apiEndpoints", "executiveSummary"]
 };
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const runScan = async (
   target: string, 
   type: 'url' | 'code', 
   activeModules: string[] = [],
-  config: ScanConfig = { aggressiveness: 'deep', sensitivity: 'all-findings', model: 'flash' }
+  config: ScanConfig = { aggressiveness: 'deep', sensitivity: 'all-findings', model: 'pro' }
 ): Promise<ScanResult> => {
   
-  // Directly initialize using process.env.API_KEY as per guidelines.
+  // Initialize inside the function to ensure process.env.API_KEY is available
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const modelName = config.model === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
 
-  const isCode = type === 'code';
-  const systemInstruction = `
-    You are WebSec-AI, an Elite Enterprise-Grade Web Penetration Testing Engine.
-    *** PHASE 1: TARGET MATURITY & LAB DETECTION ***
-    Analyze target. If hardened platform (google.com), use strict rules. If labs (vulnweb.com), active simulation.
-    *** PHASE 2: FINDING GENERATION ***
-    Report confirmed flaws: SQLi, XSS, IDOR, RCE. Return JSON matching schema.
-  `;
+  const systemInstruction = `You are WebSec-AI, a Senior Offensive Security Engineer and Penetration Tester.
+  AUDIT PROTOCOL:
+  1. ANALYZE TARGET: Determine the most likely tech stack for "${target}".
+  2. SIMULATE ATTACK: Reason through common vulnerabilities (SQLi, XSS, SSRF, IDOR, Logic Flaws).
+  3. VALIDATE: For every finding, generate a technical Proof of Concept (PoC).
+  4. REPORT: Return only a JSON object matching the provided schema.
+  5. RIGOR: Ensure CVSS scores and CWE mappings are technically accurate.`;
 
-  const userPrompt = `
-    MODE: ${config.aggressiveness.toUpperCase()}
-    TARGET: "${target}" (${isCode ? "Source Code" : "Live URL"})
-    ACTIVE MODULES: ${activeModules.join(', ') || 'ALL'}
-  `;
+  const userPrompt = `INITIATE SECURITY AUDIT
+  TARGET: ${target}
+  ENVIRONMENT: ${type === 'url' ? 'Live Web Application' : 'Source Code Snippet'}
+  INTENSITY: ${config.aggressiveness.toUpperCase()}
+  SCOPE: ${activeModules.join(', ') || 'FULL SYSTEM'}`;
 
-  // Updated models to comply with guidelines: gemini-3-pro-preview and gemini-3-flash-preview.
-  let activeModel = config.model === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
-  let lastError;
-  const maxRetries = 6;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      if (attempt > 0) {
-          const jitter = Math.random() * 1500;
-          const backoff = (3000 * Math.pow(1.5, attempt - 1)) + jitter;
-          await delay(backoff);
+  try {
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: userPrompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: scanResultSchema,
+        thinkingConfig: { thinkingBudget: 16000 }
       }
+    });
 
-      const response = await ai.models.generateContent({
-        model: activeModel,
-        contents: userPrompt,
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: scanResultSchema,
-          temperature: 0.1, 
-          seed: 42,
-        }
-      });
-
-      const text = response.text;
-      if (!text) throw new Error("AI Engine connection timed out.");
-      
-      let result: ScanResult = JSON.parse(text);
-      result.scanType = type;
-      result.target = target;
-      result.modelUsed = activeModel;
-      
-      return result;
-
-    } catch (error: any) {
-      lastError = error;
-      const isOverloaded = error.status === 503 || (error.message && error.message.toLowerCase().includes('overloaded'));
-      const isQuota = error.status === 429 || (error.message && error.message.includes('429'));
-
-      // If pro model fails, immediately drop to high-speed flash model.
-      if (activeModel === 'gemini-3-pro-preview' && (isOverloaded || isQuota)) {
-           activeModel = 'gemini-3-flash-preview';
-           continue; 
-      }
-      
-      // If flash model is also busy, drop to lite.
-      if (activeModel === 'gemini-3-flash-preview' && (isOverloaded || isQuota) && attempt > 2) {
-          activeModel = 'gemini-flash-lite-latest';
-          continue;
-      }
-      
-      if (isOverloaded || isQuota) continue;
-      break; 
-    }
+    const result: ScanResult = JSON.parse(response.text);
+    result.target = target;
+    result.scanType = type;
+    result.timestamp = new Date().toISOString();
+    result.modelUsed = modelName;
+    return result;
+  } catch (error: any) {
+    console.error("Scan Engine Error:", error);
+    throw new Error(error.message || "Uplink to intelligence node failed.");
   }
-  
-  throw lastError;
 };
 
 export const queryAgent = async (history: {role: string, content: string}[], message: string): Promise<string> => {
     try {
-        // Use process.env.API_KEY directly.
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: `History:\n${history.map(m => `${m.role}: ${m.content}`).join('\n')}\nUser: ${message}`,
-            config: { systemInstruction: "You are Sentinel, a security expert." }
+            contents: `Context:\n${history.map(m => `${m.role}: ${m.content}`).join('\n')}\nRequest: ${message}`,
+            config: { 
+                systemInstruction: "You are Sentinel, a technical security assistant. Provide concise, expert remediation advice.",
+                thinkingConfig: { thinkingBudget: 1000 }
+            }
         });
-        return response.text || "Connection unclear. Please repeat.";
+        return response.text || "No response from signal node.";
     } catch (e) {
-        return "Intelligence uplink busy. Please try again in a moment.";
+        return "Intelligence link saturated. System cooling down.";
     }
-}
+};
+
