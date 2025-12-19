@@ -19,6 +19,7 @@ import { runScan } from './services/geminiService';
 import { securityService } from './services/securityService';
 import { settingsService } from './services/settingsService';
 import { ScanResult, ScanModule, ScanConfig, AppSettings } from './types';
+import { playSound } from './utils/audio';
 import { AlertCircle } from 'lucide-react';
 
 type AppState = 'home' | 'about' | 'features' | 'contact' | 'login' | 'dashboard';
@@ -59,22 +60,36 @@ const App: React.FC = () => {
     setError(null);
     setScanLog([]);
     setScanResult(null);
+
+    // Consume credit before starting
+    const creditConsumed = securityService.consumeCredit();
+    if (!creditConsumed) {
+        setError("Insufficient scan credits. Please upgrade your plan.");
+        setIsScanning(false);
+        return;
+    }
+
     const sanitizedTarget = securityService.sanitizeInput(target);
     const activeModules = modules.filter(m => m.enabled).map(m => m.name);
     
-    setScanLog([`[${new Date().toLocaleTimeString()}] INITIALIZING_AUDIT: ${sanitizedTarget.slice(0,30)}...`]);
+    const addLog = (msg: string) => setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+    addLog(`INITIALIZING_AUDIT: ${sanitizedTarget.slice(0,30)}...`);
     
     try {
       const result = await runScan(sanitizedTarget, type, activeModules, config);
-      setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] SUCCESS: Intelligence synchronized.`]);
+      addLog('SUCCESS: Intelligence synchronized.');
+      if (appSettings.soundEffects) playSound('success');
       
-      const newHistory = [result, ...history].slice(0, 10);
+      const newResult = { ...result, timestamp: new Date().toISOString() };
+      const newHistory = [newResult, ...history].slice(0, 10);
       setHistory(newHistory);
       await securityService.saveUserHistory(newHistory);
-      setScanResult(result);
+      setScanResult(newResult);
     } catch (err: any) {
-      setError(err.message || "Uplink failed. Check your intelligence node connection.");
-      setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] CRITICAL_ERROR: ${err.message}`]);
+      securityService.refundCredit();
+      setError(err.message || "Uplink failed. Credit has been refunded.");
+      addLog(`CRITICAL_ERROR: ${err.message}`);
+      if (appSettings.soundEffects) playSound('error');
     } finally {
       setIsScanning(false);
     }
