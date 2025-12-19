@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
-import { Shield, Trash2, Key, Check, Palette, HardDrive } from 'lucide-react';
+import { Shield, Trash2, Key, Check, Palette, HardDrive, Volume2, Play } from 'lucide-react';
 import { securityService } from '../services/securityService';
 import { PlanConfig, AppSettings } from '../types';
+import { playSound, resumeAudio } from '../utils/audio';
 
 interface SettingsPageProps {
   currentUser: string;
@@ -23,7 +23,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser, onClear
 
   const handleToggle = (key: keyof AppSettings) => {
     onSettingsChange({ [key]: !settings[key] });
-    setSuccess('Settings updated');
+    setSuccess(`${key === 'highContrast' ? 'High Contrast' : 'Sound Effects'} updated`);
+    setTimeout(() => setSuccess(''), 2000);
+  };
+
+  const handleTestSound = async () => {
+    await resumeAudio();
+    playSound('success');
+    setSuccess('Testing audio engine...');
     setTimeout(() => setSuccess(''), 2000);
   };
 
@@ -48,7 +55,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser, onClear
             </h2>
             <p className="text-cyber-text-secondary">Logged in as <span className="text-cyber-primary font-mono">{currentUser}</span></p>
           </div>
-          {success && <div className="absolute top-4 right-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2"><Check size={14}/> {success}</div>}
+          {success && <div className="absolute top-4 right-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2 animate-fade-in shadow-glow"><Check size={14}/> {success}</div>}
         </div>
         <div className="cyber-card p-6 bg-gradient-to-br from-cyber-cardHighlight/20 to-cyber-bg">
           <h4 className="text-[10px] font-bold text-cyber-text-muted uppercase tracking-widest mb-3">License Info</h4>
@@ -60,18 +67,46 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser, onClear
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-6">
           <div className="cyber-card p-6">
-            <h4 className="text-sm font-bold text-cyber-text-main mb-6 flex items-center gap-2 font-display uppercase tracking-wider"><Palette size={18} className="text-cyber-primary" /> Visuals</h4>
+            <h4 className="text-sm font-bold text-cyber-text-main mb-6 flex items-center gap-2 font-display uppercase tracking-wider"><Palette size={18} className="text-cyber-primary" /> Appearance</h4>
             <div className="space-y-3">
-              <button onClick={() => handleToggle('highContrast')} className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${settings.highContrast ? 'border-cyber-primary bg-cyber-primary/5' : 'border-cyber-border bg-cyber-bg'}`}>
-                <span className="text-xs font-bold text-cyber-text-main">High Contrast Mode</span>
+              <button 
+                onClick={() => handleToggle('highContrast')} 
+                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${settings.highContrast ? 'border-cyber-primary bg-cyber-primary/10' : 'border-cyber-border bg-cyber-bg hover:border-cyber-primary/50'}`}
+              >
+                <div className="flex flex-col items-start text-left">
+                    <span className="text-xs font-bold text-cyber-text-main">High Contrast Mode</span>
+                    <span className="text-[10px] text-cyber-text-muted">Maximum accessibility colors</span>
+                </div>
                 {settings.highContrast && <Check size={14} className="text-cyber-primary" />}
               </button>
+
+              <div className="space-y-3">
+                <button 
+                    onClick={() => handleToggle('soundEffects')} 
+                    className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${settings.soundEffects ? 'border-cyber-primary bg-cyber-primary/10' : 'border-cyber-border bg-cyber-bg hover:border-cyber-primary/50'}`}
+                >
+                    <div className="flex flex-col items-start text-left">
+                        <span className="text-xs font-bold text-cyber-text-main">Sound Effects</span>
+                        <span className="text-[10px] text-cyber-text-muted">Auditory scan feedback</span>
+                    </div>
+                    {settings.soundEffects ? <Volume2 size={14} className="text-cyber-primary" /> : <div className="w-3.5" />}
+                </button>
+                
+                {settings.soundEffects && (
+                    <button 
+                        onClick={handleTestSound}
+                        className="w-full py-2 bg-cyber-bg border border-cyber-border hover:border-cyber-primary/50 text-cyber-text-main rounded-lg text-[10px] font-bold uppercase flex items-center justify-center gap-2 transition-all"
+                    >
+                        <Play size={10} fill="currentColor" /> Test Audio Engine
+                    </button>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="cyber-card p-6">
             <h4 className="text-sm font-bold text-cyber-text-main mb-4 flex items-center gap-2 font-display uppercase tracking-wider"><HardDrive size={18} className="text-cyber-primary" /> Storage</h4>
-            <button onClick={onClearHistory} className="w-full py-2.5 rounded-lg border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 text-xs font-bold transition-all flex items-center justify-center gap-2">
+            <button onClick={() => { if(window.confirm('Delete all scan records?')) onClearHistory(); }} className="w-full py-2.5 rounded-lg border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 text-xs font-bold transition-all flex items-center justify-center gap-2">
               <Trash2 size={14}/> Purge Audit History
             </button>
           </div>
@@ -84,10 +119,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ currentUser, onClear
             </h3>
             <form onSubmit={handlePasswordChange} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="password" placeholder="New Password" value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} className="bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm focus:border-cyber-primary outline-none" />
-                <input type="password" placeholder="Confirm" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} className="bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm focus:border-cyber-primary outline-none" />
+                <input type="password" placeholder="New Password" value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} className="bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm focus:border-cyber-primary outline-none transition-colors" />
+                <input type="password" placeholder="Confirm" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} className="bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm focus:border-cyber-primary outline-none transition-colors" />
               </div>
-              <button disabled={loadingPass || !passwords.new} className="px-6 py-2 bg-cyber-primary text-white rounded-lg text-xs font-bold hover:bg-cyber-primaryEnd disabled:opacity-50 transition-all">
+              <button disabled={loadingPass || !passwords.new} className="px-6 py-2 bg-cyber-primary text-white rounded-lg text-xs font-bold hover:bg-cyber-primaryEnd disabled:opacity-50 transition-all shadow-glow">
                 {loadingPass ? 'Updating...' : 'Change Password'}
               </button>
             </form>
