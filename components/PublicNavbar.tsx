@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Shield, Menu, X, ChevronRight } from 'lucide-react';
 
@@ -27,7 +28,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ current, onNavigate 
                 <Shield size={18} fill="currentColor" />
             </div>
             <span className="text-lg font-display font-extrabold tracking-tight text-cyber-text-main">
-                WebSec<span className="text-cyber-primary">.AI</span>
+                WebSec<span className="text-cyber-primary"> Ultra</span>
             </span>
         </div>
 
