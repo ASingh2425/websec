@@ -3,8 +3,10 @@ import { AppSettings } from '../types';
 
 const SETTINGS_KEY = 'websec_settings';
 
+// Updated defaultSettings to include soundEffects property to match AppSettings interface
 const defaultSettings: AppSettings = {
   highContrast: false,
+  soundEffects: true,
   telemetry: false,
 };
 
