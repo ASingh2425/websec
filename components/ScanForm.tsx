@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Globe, Code, Play, CheckCircle, Zap, Shield, Settings2, Sliders, Cpu, BrainCircuit, Lock } from 'lucide-react';
+import { Search, Globe, Code, Play, Zap, Shield, Settings2, Cpu, BrainCircuit, Lock, Flashlight } from 'lucide-react';
 import { ScanModule, ScanAggressiveness, ScanSensitivity, ScanConfig } from '../types';
 import { securityService } from '../services/securityService';
 import { PricingModal } from './PricingModal';
@@ -35,19 +35,17 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
 
   // Config State
   const [activeTools, setActiveTools] = useState<Record<string, boolean>>({});
-  const [aggressiveness, setAggressiveness] = useState<ScanAggressiveness>('deep');
-  const [model, setModel] = useState<'flash' | 'pro'>('flash');
+  const [aggressiveness, setAggressiveness] = useState<ScanAggressiveness>('stealth');
+  const [model, setModel] = useState<'flash' | 'pro' | 'lite'>('flash');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
      refreshPlan();
   }, []);
 
-  // Sync credits if refund happens (when isScanning turns false)
+  // Sync credits when scanning state changes
   useEffect(() => {
-     if (!isScanning) {
-         refreshPlan();
-     }
+     refreshPlan();
   }, [isScanning]);
 
   const refreshPlan = () => {
@@ -55,9 +53,20 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
       setPlan(p);
       setCredits(securityService.getCredits());
 
-      // Auto-select defaults based on plan
-      if (!p.allowedModels.includes('pro')) setModel('flash');
-      if (!p.allowedModes.includes('aggressive')) setAggressiveness('deep');
+      // Auto-select defaults based on plan.
+      if (!p.allowedModels.includes(model)) {
+          if (p.allowedModels.includes('lite')) setModel('lite');
+          else setModel('flash');
+      }
+      
+      // Smart Validation: Default to Stealth
+      if (!p.allowedModes.includes(aggressiveness)) {
+          if (p.allowedModes.includes('stealth')) {
+              setAggressiveness('stealth');
+          } else if (p.allowedModes.includes('deep')) {
+              setAggressiveness('deep');
+          }
+      }
       
       // Reset tools if needed
       const initialTools: Record<string, boolean> = {};
@@ -68,7 +77,6 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check Credits (Do not consume yet, App.tsx handles consumption/refund)
     if (credits <= 0 && plan.maxScans !== -1) {
         setShowPricing(true);
         return;
@@ -95,7 +103,6 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
       } else {
           const currentCount = Object.values(activeTools).filter(Boolean).length;
           if (currentCount >= plan.maxTools) {
-              // Pulse error or show upgrade
               if (plan.id === 'free') setShowPricing(true);
               return;
           }
@@ -113,7 +120,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
             <Zap size={12} className="text-cyber-primary" /> Elite Enterprise Engine
         </div>
         <h1 className="text-4xl md:text-5xl font-display font-extrabold text-cyber-text-main mb-6 tracking-tight">
-          WebSec<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-primary to-cyber-primaryEnd">.Intelligence</span>
+          WebSec<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-primary to-cyber-primaryEnd"> Ultra</span>
         </h1>
         <p className="text-cyber-text-secondary text-lg font-light max-w-lg mx-auto leading-relaxed mb-4">
           Enterprise-grade penetration testing powered by AI. 
@@ -136,7 +143,6 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
         
         <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-8 bg-cyber-card">
             
-            {/* Input Group */}
             <div className="space-y-4">
                 <div className="flex justify-center gap-4 mb-6">
                      <button
@@ -190,7 +196,6 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                 </div>
             </div>
 
-            {/* Config Toggles */}
             <div className="flex flex-col gap-4">
                 <div 
                     className="flex items-center justify-center gap-2 text-xs font-bold text-cyber-primary uppercase tracking-widest cursor-pointer hover:text-cyber-primaryEnd transition-colors"
@@ -201,27 +206,39 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
 
                 {showAdvanced && (
                     <div className="bg-cyber-cardHighlight rounded-xl p-6 border border-cyber-border animate-fade-in space-y-6">
-                        
-                        {/* Model Selection */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            <div className="space-y-3">
                               <label className="text-xs font-bold text-cyber-text-secondary uppercase flex items-center gap-2">
                                 <Cpu size={14} /> Intelligence Model
                               </label>
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-3 gap-2">
+                                  <button
+                                      type="button"
+                                      onClick={() => setModel('lite')}
+                                      className={`p-2 rounded-lg border text-left transition-all ${
+                                          model === 'lite'
+                                          ? 'bg-blue-500/10 border-blue-500 text-blue-400'
+                                          : 'bg-cyber-bg border-cyber-border text-cyber-text-muted hover:border-blue-500/30'
+                                      }`}
+                                  >
+                                      <div className="text-xs font-bold mb-1 flex items-center gap-1.5">
+                                         <Flashlight size={10} /> 2.5 Lite
+                                      </div>
+                                      <div className="text-[9px] opacity-80">Lowest Latency</div>
+                                  </button>
                                   <button
                                       type="button"
                                       onClick={() => setModel('flash')}
-                                      className={`p-3 rounded-lg border text-left transition-all ${
+                                      className={`p-2 rounded-lg border text-left transition-all ${
                                           model === 'flash'
                                           ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
                                           : 'bg-cyber-bg border-cyber-border text-cyber-text-muted hover:border-emerald-500/30'
                                       }`}
                                   >
-                                      <div className="text-xs font-bold mb-1 flex items-center gap-2">
-                                         <Zap size={12} /> Gemini Flash
+                                      <div className="text-xs font-bold mb-1 flex items-center gap-1.5">
+                                         <Zap size={10} /> 2.5 Flash
                                       </div>
-                                      <div className="text-[10px] opacity-80">High Speed / Free</div>
+                                      <div className="text-[9px] opacity-80">Balanced Speed</div>
                                   </button>
                                   <button
                                       type="button"
@@ -229,7 +246,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                                           if (plan.allowedModels.includes('pro')) setModel('pro');
                                           else setShowPricing(true);
                                       }}
-                                      className={`p-3 rounded-lg border text-left transition-all relative overflow-hidden ${
+                                      className={`p-2 rounded-lg border text-left transition-all relative overflow-hidden ${
                                           model === 'pro'
                                           ? 'bg-cyber-primary/10 border-cyber-primary text-cyber-primary'
                                           : 'bg-cyber-bg border-cyber-border text-cyber-text-muted hover:border-cyber-primary/30'
@@ -240,10 +257,10 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                                               <Lock size={16} className="text-cyber-text-muted" />
                                           </div>
                                       )}
-                                      <div className="text-xs font-bold mb-1 flex items-center gap-2">
-                                         <BrainCircuit size={12} /> Gemini Pro
+                                      <div className="text-xs font-bold mb-1 flex items-center gap-1.5">
+                                         <BrainCircuit size={10} /> 3 Pro
                                       </div>
-                                      <div className="text-[10px] opacity-80">Deep Logic</div>
+                                      <div className="text-[9px] opacity-80">Deep Reasoning</div>
                                   </button>
                               </div>
                            </div>
@@ -280,7 +297,6 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                             </div>
                         </div>
 
-                        {/* Engine Selection */}
                         <div className="space-y-3">
                             <label className="text-xs font-bold text-cyber-text-secondary uppercase flex justify-between">
                                 <span>Simulated Engines</span>
@@ -305,7 +321,6 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                                     </button>
                                 ))}
                             </div>
-                            {plan.id === 'free' && <p className="text-[10px] text-amber-400 mt-1">Free plan cannot enable tools. Upgrade to unlock.</p>}
                         </div>
                     </div>
                 )}
@@ -340,15 +355,6 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                 </div>
             )}
         </form>
-      </div>
-      
-      {/* Trust Indicators */}
-      <div className="mt-12 flex justify-center items-center gap-8 opacity-60 text-cyber-text-muted hover:opacity-100 transition-opacity duration-500">
-         <div className="font-display font-bold text-xl tracking-widest">OWASP</div>
-         <div className="w-px h-5 bg-cyber-border"></div>
-         <div className="font-display font-bold text-xl tracking-widest">NIST</div>
-         <div className="w-px h-5 bg-cyber-border"></div>
-         <div className="font-display font-bold text-xl tracking-widest">ISO 27001</div>
       </div>
     </div>
     </>
