@@ -1,4 +1,4 @@
-import { ScanResult, PlanType, PlanConfig, UserSubscription } from '../types';
+import { ScanResult, PlanType, PlanConfig, UserSubscription, ScanAggressiveness } from '../types';
 
 interface UserSession {
   token: string;
@@ -20,27 +20,27 @@ const USERS_KEY = 'websec_users';
 export const PLANS: Record<PlanType, PlanConfig> = {
   free: {
     id: 'free', name: 'Free Starter', priceDisplay: 'Free', maxScans: 3, resetPeriod: 'daily',
-    allowedModels: ['flash'], allowedModes: ['stealth'], maxTools: 0,
+    allowedModels: ['flash', 'lite'], allowedModes: ['stealth', 'deep'], maxTools: 0,
     showSolutions: false, allowDownload: false, showProbableVulns: false
   },
   onetime_350: {
     id: 'onetime_350', name: 'Single Deep Scan', priceDisplay: '₹350 / scan', maxScans: 1, resetPeriod: 'never',
-    allowedModels: ['flash', 'pro'], allowedModes: ['stealth', 'deep'], maxTools: 10,
+    allowedModels: ['flash', 'pro', 'lite'], allowedModes: ['stealth', 'deep'], maxTools: 10,
     showSolutions: false, allowDownload: true, showProbableVulns: false
   },
   onetime_500: {
     id: 'onetime_500', name: 'Pro Scan Bundle', priceDisplay: '₹500 / 3 scans', maxScans: 3, resetPeriod: 'never',
-    allowedModels: ['flash', 'pro'], allowedModes: ['stealth', 'deep', 'aggressive'], maxTools: 10,
+    allowedModels: ['flash', 'pro', 'lite'], allowedModes: ['stealth', 'deep', 'aggressive'], maxTools: 10,
     showSolutions: true, allowDownload: true, showProbableVulns: true
   },
   sub_1899: {
     id: 'sub_1899', name: 'Monthly Standard', priceDisplay: '₹1899 / mo', maxScans: -1, resetPeriod: 'monthly',
-    allowedModels: ['flash'], allowedModes: ['stealth', 'deep'], maxTools: 5,
+    allowedModels: ['flash', 'lite'], allowedModes: ['stealth', 'deep'], maxTools: 5,
     showSolutions: false, allowDownload: true, showProbableVulns: false
   },
   sub_2999: {
     id: 'sub_2999', name: 'Enterprise Monthly', priceDisplay: '₹2999 / mo', maxScans: -1, resetPeriod: 'monthly',
-    allowedModels: ['flash', 'pro'], allowedModes: ['stealth', 'deep', 'aggressive'], maxTools: 10,
+    allowedModels: ['flash', 'pro', 'lite'], allowedModes: ['stealth', 'deep', 'aggressive'], maxTools: 10,
     showSolutions: true, allowDownload: true, showProbableVulns: true
   }
 };
@@ -55,23 +55,23 @@ export const securityService = {
 
   saveUser(user: UserProfile) {
     try {
-      const users = this.getRegisteredUsers();
-      const filtered = users.filter(u => u.username !== user.username);
-      filtered.push(user);
-      localStorage.setItem(USERS_KEY, JSON.stringify(filtered));
+        const users = this.getRegisteredUsers();
+        const filtered = users.filter(u => u.username !== user.username);
+        filtered.push(user);
+        localStorage.setItem(USERS_KEY, JSON.stringify(filtered));
     } catch (e) {}
   },
 
   getCurrentUser(): string | null {
     try {
-      const sessionStr = sessionStorage.getItem(SESSION_KEY);
-      if (!sessionStr) return null;
-      const session: UserSession = JSON.parse(sessionStr);
-      if (Date.now() > session.expiry) {
-        this.logout();
-        return null;
-      }
-      return session.user;
+        const sessionStr = sessionStorage.getItem(SESSION_KEY);
+        if (!sessionStr) return null;
+        const session: UserSession = JSON.parse(sessionStr);
+        if (Date.now() > session.expiry) {
+            this.logout();
+            return null;
+        }
+        return session.user;
     } catch (e) { return null; }
   },
 
@@ -79,23 +79,27 @@ export const securityService = {
     const username = this.getCurrentUser();
     if (!username) return null;
 
-    if (username.toLowerCase() === 'guest') {
-      return {
-        username: 'Guest',
-        passwordHash: 'GUEST_PASS',
-        subscription: { planId: 'free', scansRemaining: 3, lastResetDate: new Date().toISOString() }
-      };
+    const registeredUsers = this.getRegisteredUsers();
+    let profile = registeredUsers.find(u => u.username === username) || null;
+
+    // Auto-initialize persistent profile for Guest if not exists
+    if (!profile && username === 'Guest') {
+        profile = {
+          username: 'Guest', passwordHash: 'GUEST_PASS',
+          subscription: { planId: 'free', scansRemaining: 3, lastResetDate: new Date().toISOString() }
+        };
+        this.saveUser(profile);
     }
 
-    if (username.toLowerCase() === 'admin') {
-      return {
-        username: 'admin',
-        passwordHash: 'BYPASS',
-        subscription: { planId: 'free', scansRemaining: 3, lastResetDate: new Date().toISOString() }
-      };
+    // Handle Mock Admin
+    if (!profile && username.toLowerCase() === 'admin') {
+       profile = {
+         username: 'admin', passwordHash: 'BYPASS',
+         subscription: { planId: 'sub_2999', scansRemaining: -1, lastResetDate: new Date().toISOString() }
+       };
     }
 
-    return this.getRegisteredUsers().find(u => u.username === username) || null;
+    return profile;
   },
 
   getCurrentPlan(): PlanConfig {
@@ -131,17 +135,14 @@ export const securityService = {
   async login(id: string, pass: string): Promise<boolean> {
     const cleanId = id.toLowerCase();
     
-    // Clear existing session first to ensure a clean slate
-    sessionStorage.removeItem(SESSION_KEY);
-
-    // Explicit Guest Login Handle
+    // Explicit Guest Bypass
     if (cleanId === 'guest') {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
-        token: 'auth_token_guest', 
-        expiry: Date.now() + 3600000, 
-        user: 'Guest' 
-      }));
-      return true;
+       sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
+         token: 'auth_token_guest', 
+         expiry: Date.now() + 3600000, 
+         user: 'Guest' 
+       }));
+       return true;
     }
 
     // Explicit Admin Bypass
@@ -164,8 +165,8 @@ export const securityService = {
     const user = this.getCurrentUser();
     if (!user) return [];
     try {
-      const raw = localStorage.getItem(`websec_data_${user}`);
-      return raw ? JSON.parse(raw) : [];
+        const raw = localStorage.getItem(`websec_data_${user}`);
+        return raw ? JSON.parse(raw) : [];
     } catch(e) { return []; }
   },
 
@@ -175,8 +176,8 @@ export const securityService = {
   },
 
   async clearUserHistory() {
-    const user = this.getCurrentUser();
-    if (user) localStorage.removeItem(`websec_data_${user}`);
+     const user = this.getCurrentUser();
+     if (user) localStorage.removeItem(`websec_data_${user}`);
   },
 
   sanitizeInput(input: string): string { return input || ""; },
