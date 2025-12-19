@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { ScanForm } from './components/ScanForm';
@@ -55,40 +55,37 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
+  const handleSettingsChange = (newSettings: Partial<AppSettings>) => {
+    const updated = { ...appSettings, ...newSettings };
+    setAppSettings(updated);
+    settingsService.saveSettings(updated);
+    settingsService.applySettings(updated);
+  };
+
   const handleScan = async (target: string, type: 'url' | 'code', modules: ScanModule[], config: ScanConfig) => {
     setIsScanning(true);
     setError(null);
     setScanLog([]);
     setScanResult(null);
 
-    // Consume credit before starting
-    const creditConsumed = securityService.consumeCredit();
-    if (!creditConsumed) {
-        setError("Insufficient scan credits. Please upgrade your plan.");
-        setIsScanning(false);
-        return;
+    if (!securityService.consumeCredit()) {
+      setError("Insufficient credits.");
+      setIsScanning(false);
+      return;
     }
 
-    const sanitizedTarget = securityService.sanitizeInput(target);
-    const activeModules = modules.filter(m => m.enabled).map(m => m.name);
-    
     const addLog = (msg: string) => setScanLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
-    addLog(`INITIALIZING_AUDIT: ${sanitizedTarget.slice(0,30)}...`);
-    
+    addLog(`STARTING: ${target.slice(0, 30)}...`);
+
     try {
-      const result = await runScan(sanitizedTarget, type, activeModules, config);
-      addLog('SUCCESS: Intelligence synchronized.');
+      const result = await runScan(target, type, modules.filter(m => m.enabled).map(m => m.name), config);
       if (appSettings.soundEffects) playSound('success');
-      
-      const newResult = { ...result, timestamp: new Date().toISOString() };
-      const newHistory = [newResult, ...history].slice(0, 10);
-      setHistory(newHistory);
-      await securityService.saveUserHistory(newHistory);
-      setScanResult(newResult);
+      setHistory(prev => [result, ...prev].slice(0, 10));
+      await securityService.saveUserHistory([result, ...history].slice(0, 10));
+      setScanResult(result);
     } catch (err: any) {
       securityService.refundCredit();
-      setError(err.message || "Uplink failed. Credit has been refunded.");
-      addLog(`CRITICAL_ERROR: ${err.message}`);
+      setError(err.message || "Failed.");
       if (appSettings.soundEffects) playSound('error');
     } finally {
       setIsScanning(false);
@@ -98,7 +95,6 @@ const App: React.FC = () => {
   const handleLogout = () => {
     securityService.logout();
     setAppState('home');
-    setCurrentView('scanner');
     setScanResult(null);
     setHistory([]);
   };
@@ -109,8 +105,7 @@ const App: React.FC = () => {
       case 'features': return <FeaturesPage onNavigate={setAppState} />;
       case 'contact': return <ContactPage onNavigate={setAppState} />;
       case 'login': return <LoginPage onLogin={() => {
-        const user = securityService.getCurrentUser();
-        if (user) setCurrentUser(user);
+        setCurrentUser(securityService.getCurrentUser() || 'Guest');
         setAppState('dashboard');
       }} />;
       default: return <HomePage onNavigate={setAppState} />;
@@ -133,7 +128,7 @@ const App: React.FC = () => {
            {currentView === 'intelligence' && <Intelligence />}
            {currentView === 'monitor' && <LiveMonitor />}
            {currentView === 'history' && <History history={history} onLoad={(r) => { setScanResult(r); setCurrentView('scanner'); }} onClear={() => setHistory([])} onDelete={(t) => setHistory(history.filter(h => h.timestamp !== t))} />}
-           {currentView === 'settings' && <SettingsPage settings={appSettings} onSettingsChange={(s) => setAppSettings(p => ({...p, ...s}))} currentUser={currentUser} onClearHistory={() => setHistory([])} />}
+           {currentView === 'settings' && <SettingsPage settings={appSettings} onSettingsChange={handleSettingsChange} currentUser={currentUser} onClearHistory={() => setHistory([])} />}
            {currentView === 'help' && <HelpPage />}
            {currentView === 'scanner' && (
               !scanResult ? (
