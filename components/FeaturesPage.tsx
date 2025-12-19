@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { PublicNavbar } from './PublicNavbar';
 import { Zap, Globe, Lock, Code, Database, Server, Layers, FileSearch } from 'lucide-react';
@@ -83,7 +82,7 @@ export const FeaturesPage: React.FC<FeaturesPageProps> = ({ onNavigate }) => {
       </main>
 
       <footer className="py-8 text-center text-cyber-text-muted text-sm border-t border-cyber-border relative z-10 bg-cyber-bg">
-        <p>© 2024 WebSec Ultra. All systems nominal.</p>
+        <p>© 2025 WebSec Ultra. All systems nominal.</p>
       </footer>
     </div>
   );
