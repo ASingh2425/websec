@@ -1,188 +1,135 @@
-import { ScanResult, PlanType, PlanConfig, UserSubscription } from '../types';
+import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { ScanResult, Severity, ScanConfig } from "../types";
 
-interface UserSession {
-  token: string;
-  expiry: number;
-  user: string;
-}
+const vulnerabilitySchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    id: { type: Type.STRING },
+    title: { type: Type.STRING },
+    severity: { type: Type.STRING, enum: [Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW, Severity.INFO] },
+    description: { type: Type.STRING, description: "Deep technical analysis of the vulnerability." },
+    affectedUrl: { type: Type.STRING, description: "Specific endpoint, parameter, or code line affected." },
+    impact: { type: Type.STRING, description: "Potential business and technical consequences." },
+    fixCode: { type: Type.STRING, description: "Secure code snippet or configuration change to fix the flaw." },
+    fixExplanation: { type: Type.STRING, description: "Step-by-step remediation instructions." },
+    proofOfConcept: { type: Type.STRING, description: "MANDATORY: The exact payload, curl command, or HTTP request/response evidence." },
+    cwe: { type: Type.STRING, description: "CWE-ID (e.g., CWE-89)" },
+    capec: { type: Type.STRING, description: "CAPEC-ID (e.g., CAPEC-66)" },
+    cvssScore: { type: Type.NUMBER, description: "CVSS v3.1 Score (0.0-10.0)" },
+    cvssVector: { type: Type.STRING, description: "CVSS v3.1 Vector string." }
+  },
+  required: ["id", "title", "severity", "description", "affectedUrl", "impact", "fixCode", "fixExplanation", "proofOfConcept", "cvssScore"]
+};
 
-interface UserProfile {
-  username: string;
-  email?: string;
-  mobile?: string;
-  passwordHash: string;
-  subscription: UserSubscription;
-}
+const scanResultSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    target: { type: Type.STRING },
+    scanType: { type: Type.STRING, enum: ["url", "code"] },
+    siteDescription: { type: Type.STRING },
+    summary: { type: Type.STRING },
+    riskScore: { type: Type.NUMBER, description: "Overall security health score from 0 (Critical) to 100 (Secure)." },
+    maturityLevel: { type: Type.STRING, enum: ["Hardened", "Enterprise", "Standard", "Vulnerable"] },
+    securityMetrics: {
+        type: Type.OBJECT,
+        properties: {
+            authScore: { type: Type.NUMBER },
+            dbScore: { type: Type.NUMBER },
+            networkScore: { type: Type.NUMBER },
+            clientScore: { type: Type.NUMBER },
+            complianceScore: { type: Type.NUMBER }
+        },
+        required: ["authScore", "dbScore", "networkScore", "clientScore", "complianceScore"]
+    },
+    owaspDistribution: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { category: { type: Type.STRING }, count: { type: Type.NUMBER } }, required: ["category", "count"] } },
+    techStack: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, category: { type: Type.STRING }, version: { type: Type.STRING } }, required: ["name", "category"] } },
+    vulnerabilities: { type: Type.ARRAY, items: vulnerabilitySchema },
+    probableVulnerabilities: { 
+      type: Type.ARRAY, 
+      items: { 
+        type: Type.OBJECT, 
+        properties: { 
+          category: { type: Type.STRING }, 
+          title: { type: Type.STRING }, 
+          likelihood: { type: Type.STRING, enum: ["High", "Medium", "Low"] }, 
+          location: { type: Type.STRING }, 
+          reasoning: { type: Type.STRING }, 
+          verificationSteps: { type: Type.STRING } 
+        }, 
+        required: ["category", "title", "likelihood", "location", "reasoning", "verificationSteps"] 
+      } 
+    },
+    headers: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, value: { type: Type.STRING }, status: { type: Type.STRING, enum: ["secure", "warning", "missing"] } }, required: ["name", "value", "status"] } },
+    ports: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { port: { type: Type.NUMBER }, protocol: { type: Type.STRING }, service: { type: Type.STRING }, state: { type: Type.STRING }, risk: { type: Type.STRING } }, required: ["port", "protocol", "service", "state", "risk"] } },
+    sitemap: { type: Type.ARRAY, items: { type: Type.STRING } },
+    apiEndpoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+    executiveSummary: { type: Type.STRING, description: "High-level summary for stakeholders." }
+  },
+  required: ["target", "scanType", "siteDescription", "summary", "riskScore", "maturityLevel", "securityMetrics", "owaspDistribution", "techStack", "vulnerabilities", "probableVulnerabilities", "headers", "ports", "sitemap", "apiEndpoints", "executiveSummary"]
+};
 
-const SESSION_KEY = 'websec_session';
-const USERS_KEY = 'websec_users';
+export const runScan = async (
+  target: string, 
+  type: 'url' | 'code', 
+  activeModules: string[] = [],
+  config: ScanConfig = { aggressiveness: 'deep', sensitivity: 'all-findings', model: 'pro' }
+): Promise<ScanResult> => {
+  
+  // Directly initialize using process.env.API_KEY within the function to ensure capture.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const modelName = config.model === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
 
-export const PLANS: Record<PlanType, PlanConfig> = {
-  free: {
-    id: 'free', name: 'Free Starter', priceDisplay: 'Free', maxScans: 3, resetPeriod: 'daily',
-    allowedModels: ['flash'], allowedModes: ['stealth'], maxTools: 0,
-    showSolutions: false, allowDownload: false, showProbableVulns: false
-  },
-  onetime_350: {
-    id: 'onetime_350', name: 'Single Deep Scan', priceDisplay: '₹350 / scan', maxScans: 1, resetPeriod: 'never',
-    allowedModels: ['flash', 'pro'], allowedModes: ['stealth', 'deep'], maxTools: 10,
-    showSolutions: false, allowDownload: true, showProbableVulns: false
-  },
-  onetime_500: {
-    id: 'onetime_500', name: 'Pro Scan Bundle', priceDisplay: '₹500 / 3 scans', maxScans: 3, resetPeriod: 'never',
-    allowedModels: ['flash', 'pro'], allowedModes: ['stealth', 'deep', 'aggressive'], maxTools: 10,
-    showSolutions: true, allowDownload: true, showProbableVulns: true
-  },
-  sub_1899: {
-    id: 'sub_1899', name: 'Monthly Standard', priceDisplay: '₹1899 / mo', maxScans: -1, resetPeriod: 'monthly',
-    allowedModels: ['flash'], allowedModes: ['stealth', 'deep'], maxTools: 5,
-    showSolutions: false, allowDownload: true, showProbableVulns: false
-  },
-  sub_2999: {
-    id: 'sub_2999', name: 'Enterprise Monthly', priceDisplay: '₹2999 / mo', maxScans: -1, resetPeriod: 'monthly',
-    allowedModels: ['flash', 'pro'], allowedModes: ['stealth', 'deep', 'aggressive'], maxTools: 10,
-    showSolutions: true, allowDownload: true, showProbableVulns: true
+  const systemInstruction = `You are WebSec-AI, a Senior Offensive Security Auditor.
+  AUDIT PROTOCOL:
+  1. ANALYZE TARGET: Evaluate the probable infrastructure of "${target}".
+  2. SIMULATE ATTACKS: Reason about potential vulnerabilities including SQLi, XSS, SSRF, BOLA/IDOR, and Logic Flaws.
+  3. EVIDENCE: Every finding MUST have a technical Proof of Concept (PoC) payload or curl command.
+  4. ACCURACY: Use real-world CVE/CWE mappings. If the target is a hardened site (like google.com), identify advanced theorized flaws or identify it as a "Hardened Enterprise" target.
+  5. RETURN: Valid JSON only matching the provided schema.`;
+
+  const userPrompt = `INITIATE SECURITY AUDIT
+  TARGET: ${target}
+  TYPE: ${type === 'url' ? 'Live Web Application' : 'Source Code Snippet'}
+  INTENSITY: ${config.aggressiveness.toUpperCase()}
+  SCOPE: ${activeModules.join(', ') || 'FULL'}`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: userPrompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: scanResultSchema,
+        thinkingConfig: { thinkingBudget: 16000 }
+      }
+    });
+
+    const result: ScanResult = JSON.parse(response.text);
+    result.target = target;
+    result.scanType = type;
+    result.timestamp = new Date().toISOString();
+    result.modelUsed = modelName;
+    return result;
+  } catch (error: any) {
+    console.error("Intelligence node failure:", error);
+    throw new Error(error.message || "Failed to establish secure link to intelligence node.");
   }
 };
 
-export const securityService = {
-  getRegisteredUsers(): UserProfile[] {
+export const queryAgent = async (history: {role: string, content: string}[], message: string): Promise<string> => {
     try {
-      const users = localStorage.getItem(USERS_KEY);
-      return users ? JSON.parse(users) : [];
-    } catch (e) { return []; }
-  },
-
-  saveUser(user: UserProfile) {
-    try {
-      const users = this.getRegisteredUsers();
-      const filtered = users.filter(u => u.username !== user.username);
-      filtered.push(user);
-      localStorage.setItem(USERS_KEY, JSON.stringify(filtered));
-    } catch (e) {}
-  },
-
-  getCurrentUser(): string | null {
-    try {
-      const sessionStr = sessionStorage.getItem(SESSION_KEY);
-      if (!sessionStr) return null;
-      const session: UserSession = JSON.parse(sessionStr);
-      if (Date.now() > session.expiry) {
-        this.logout();
-        return null;
-      }
-      return session.user;
-    } catch (e) { return null; }
-  },
-
-  getUserProfile(): UserProfile | null {
-    const username = this.getCurrentUser();
-    if (!username) return null;
-
-    if (username.toLowerCase() === 'guest') {
-      return {
-        username: 'Guest',
-        passwordHash: 'GUEST_PASS',
-        subscription: { planId: 'free', scansRemaining: 3, lastResetDate: new Date().toISOString() }
-      };
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: `Context:\n${history.map(m => `${m.role}: ${m.content}`).join('\n')}\nRequest: ${message}`,
+            config: { 
+                systemInstruction: "You are Sentinel, a technical security assistant. Provide expert, concise advice.",
+                thinkingConfig: { thinkingBudget: 1000 }
+            }
+        });
+        return response.text || "Signal interrupted.";
+    } catch (e) {
+        return "Intelligence link saturated. Please try again.";
     }
-
-    if (username.toLowerCase() === 'admin') {
-      return {
-        username: 'admin',
-        passwordHash: 'BYPASS',
-        subscription: { planId: 'free', scansRemaining: 3, lastResetDate: new Date().toISOString() }
-      };
-    }
-
-    return this.getRegisteredUsers().find(u => u.username === username) || null;
-  },
-
-  getCurrentPlan(): PlanConfig {
-    const profile = this.getUserProfile();
-    return profile ? PLANS[profile.subscription.planId] : PLANS.free;
-  },
-
-  getCredits(): number {
-    const profile = this.getUserProfile();
-    return profile ? profile.subscription.scansRemaining : 0;
-  },
-
-  consumeCredit(): boolean {
-    const profile = this.getUserProfile();
-    if (!profile) return false;
-    if (profile.subscription.scansRemaining === -1) return true;
-    if (profile.subscription.scansRemaining > 0) {
-      profile.subscription.scansRemaining -= 1;
-      this.saveUser(profile);
-      return true;
-    }
-    return false;
-  },
-
-  refundCredit() {
-    const profile = this.getUserProfile();
-    if (profile && profile.subscription.scansRemaining !== -1) {
-      profile.subscription.scansRemaining += 1;
-      this.saveUser(profile);
-    }
-  },
-
-  async login(id: string, pass: string): Promise<boolean> {
-    const cleanId = id.toLowerCase();
-    
-    // Clear existing session first to ensure a clean slate
-    sessionStorage.removeItem(SESSION_KEY);
-
-    // Explicit Guest Login Handle
-    if (cleanId === 'guest') {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
-        token: 'auth_token_guest', 
-        expiry: Date.now() + 3600000, 
-        user: 'Guest' 
-      }));
-      return true;
-    }
-
-    // Explicit Admin Bypass
-    if (cleanId === 'admin' && pass.toLowerCase() === 'admin') {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
-        token: 'auth_token_admin', 
-        expiry: Date.now() + 3600000, 
-        user: 'admin' 
-      }));
-      return true;
-    }
-
-    return false;
-  },
-
-  logout() { sessionStorage.removeItem(SESSION_KEY); },
-  isAuthenticated(): boolean { return !!this.getCurrentUser(); },
-
-  async getUserHistory(): Promise<ScanResult[]> {
-    const user = this.getCurrentUser();
-    if (!user) return [];
-    try {
-      const raw = localStorage.getItem(`websec_data_${user}`);
-      return raw ? JSON.parse(raw) : [];
-    } catch(e) { return []; }
-  },
-
-  async saveUserHistory(history: ScanResult[]) {
-    const user = this.getCurrentUser();
-    if (user) localStorage.setItem(`websec_data_${user}`, JSON.stringify(history));
-  },
-
-  async clearUserHistory() {
-    const user = this.getCurrentUser();
-    if (user) localStorage.removeItem(`websec_data_${user}`);
-  },
-
-  sanitizeInput(input: string): string { return input || ""; },
-
-  validateTarget(target: string, type: 'url' | 'code'): string | null {
-    if (!target.trim()) return "Target input required";
-    return null; 
-  }
 };
