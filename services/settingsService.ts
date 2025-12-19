@@ -1,9 +1,7 @@
-
 import { AppSettings } from '../types';
 
 const SETTINGS_KEY = 'websec_settings';
 
-// Updated defaultSettings to include soundEffects property to match AppSettings interface
 const defaultSettings: AppSettings = {
   highContrast: false,
   soundEffects: true,
@@ -13,22 +11,16 @@ const defaultSettings: AppSettings = {
 export const settingsService = {
   getSettings(): AppSettings {
     try {
-      const storedSettings = localStorage.getItem(SETTINGS_KEY);
-      if (storedSettings) {
-        return { ...defaultSettings, ...JSON.parse(storedSettings) };
-      }
-    } catch (e) {
-      console.error("Failed to parse settings", e);
-    }
+      const stored = localStorage.getItem(SETTINGS_KEY);
+      if (stored) return { ...defaultSettings, ...JSON.parse(stored) };
+    } catch (e) {}
     return defaultSettings;
   },
 
   saveSettings(settings: AppSettings) {
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    } catch (e) {
-      console.error("Failed to save settings", e);
-    }
+    } catch (e) {}
   },
 
   applySettings(settings: AppSettings) {
