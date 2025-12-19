@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, Globe, Code, Play, Zap, Shield, Settings2, Cpu, BrainCircuit, Lock, Flashlight } from 'lucide-react';
 import { ScanModule, ScanAggressiveness, ScanSensitivity, ScanConfig } from '../types';
 import { securityService } from '../services/securityService';
 import { PricingModal } from './PricingModal';
+import { playSound, resumeAudio } from '../utils/audio';
 
 interface ScanFormProps {
   onScan: (target: string, type: 'url' | 'code', modules: ScanModule[], config: ScanConfig) => void;
@@ -35,7 +35,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
 
   // Config State
   const [activeTools, setActiveTools] = useState<Record<string, boolean>>({});
-  const [aggressiveness, setAggressiveness] = useState<ScanAggressiveness>('stealth');
+  const [aggressiveness, setAggressiveness] = useState<ScanAggressiveness>('deep');
   const [model, setModel] = useState<'flash' | 'pro' | 'lite'>('flash');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -43,9 +43,11 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
      refreshPlan();
   }, []);
 
-  // Sync credits when scanning state changes
+  // Sync credits if refund happens (when isScanning turns false)
   useEffect(() => {
-     refreshPlan();
+     if (!isScanning) {
+         refreshPlan();
+     }
   }, [isScanning]);
 
   const refreshPlan = () => {
@@ -53,29 +55,29 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
       setPlan(p);
       setCredits(securityService.getCredits());
 
-      // Auto-select defaults based on plan.
       if (!p.allowedModels.includes(model)) {
           if (p.allowedModels.includes('lite')) setModel('lite');
           else setModel('flash');
       }
       
-      // Smart Validation: Default to Stealth
       if (!p.allowedModes.includes(aggressiveness)) {
-          if (p.allowedModes.includes('stealth')) {
-              setAggressiveness('stealth');
-          } else if (p.allowedModes.includes('deep')) {
+          if (p.allowedModes.includes('deep')) {
               setAggressiveness('deep');
+          } else if (p.allowedModes.includes('stealth')) {
+              setAggressiveness('stealth');
           }
       }
       
-      // Reset tools if needed
       const initialTools: Record<string, boolean> = {};
       TOOLS.slice(0, p.maxTools).forEach(t => initialTools[t.id] = true);
       setActiveTools(initialTools);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Resume Audio Context on user gesture
+    await resumeAudio();
     
     if (credits <= 0 && plan.maxScans !== -1) {
         setShowPricing(true);
@@ -85,10 +87,14 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
     const validationError = securityService.validateTarget(input, mode);
     if (validationError) {
       setError(validationError);
+      playSound('error');
       return;
     }
     setError('');
     
+    // Trigger startup sound to confirm audio is active
+    playSound('startup');
+
     const modules: ScanModule[] = TOOLS.map(t => ({
       name: t.name,
       enabled: !!activeTools[t.id]
@@ -98,6 +104,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
   };
 
   const handleToolToggle = (id: string) => {
+      playSound('click');
       if (activeTools[id]) {
           setActiveTools(prev => ({...prev, [id]: false}));
       } else {
@@ -120,20 +127,19 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
             <Zap size={12} className="text-cyber-primary" /> Elite Enterprise Engine
         </div>
         <h1 className="text-4xl md:text-5xl font-display font-extrabold text-cyber-text-main mb-6 tracking-tight">
-          WebSec<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-primary to-cyber-primaryEnd"> Ultra</span>
+          WebSec<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-primary to-cyber-primaryEnd">.Intelligence</span>
         </h1>
         <p className="text-cyber-text-secondary text-lg font-light max-w-lg mx-auto leading-relaxed mb-4">
           Enterprise-grade penetration testing powered by AI. 
         </p>
 
-        {/* Credit Display */}
         <div className="inline-block bg-cyber-cardHighlight rounded-full px-4 py-1 border border-cyber-border">
             <span className="text-xs font-bold text-cyber-text-muted uppercase tracking-wider mr-2">Plan: <span className="text-cyber-primary">{plan.name}</span></span>
             <span className="text-xs font-bold text-cyber-text-main">
                 {plan.maxScans === -1 ? 'Unlimited Scans' : `${credits} Scan${credits !== 1 ? 's' : ''} Remaining`}
             </span>
             {credits <= 0 && plan.maxScans !== -1 && (
-                <button onClick={() => setShowPricing(true)} className="ml-3 text-xs font-bold text-emerald-400 hover:underline">Get More</button>
+                <button onClick={() => { playSound('click'); setShowPricing(true); }} className="ml-3 text-xs font-bold text-emerald-400 hover:underline">Get More</button>
             )}
         </div>
       </div>
@@ -147,7 +153,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                 <div className="flex justify-center gap-4 mb-6">
                      <button
                         type="button"
-                        onClick={() => { setMode('url'); setError(''); }}
+                        onClick={() => { playSound('click'); setMode('url'); setError(''); }}
                         className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all border ${
                             mode === 'url' 
                             ? 'bg-cyber-primary text-white border-cyber-primary shadow-lg shadow-indigo-900/50' 
@@ -158,7 +164,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                     </button>
                     <button
                         type="button"
-                        onClick={() => { setMode('code'); setError(''); }}
+                        onClick={() => { playSound('click'); setMode('code'); setError(''); }}
                         className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all border ${
                             mode === 'code' 
                             ? 'bg-cyber-primary text-white border-cyber-primary shadow-lg shadow-indigo-900/50' 
@@ -199,7 +205,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
             <div className="flex flex-col gap-4">
                 <div 
                     className="flex items-center justify-center gap-2 text-xs font-bold text-cyber-primary uppercase tracking-widest cursor-pointer hover:text-cyber-primaryEnd transition-colors"
-                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    onClick={() => { playSound('click'); setShowAdvanced(!showAdvanced); }}
                 >
                     <Settings2 size={14} /> {showAdvanced ? 'Hide Config' : 'Configure Scan'}
                 </div>
@@ -214,7 +220,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                               <div className="grid grid-cols-3 gap-2">
                                   <button
                                       type="button"
-                                      onClick={() => setModel('lite')}
+                                      onClick={() => { playSound('click'); setModel('lite'); }}
                                       className={`p-2 rounded-lg border text-left transition-all ${
                                           model === 'lite'
                                           ? 'bg-blue-500/10 border-blue-500 text-blue-400'
@@ -228,7 +234,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                                   </button>
                                   <button
                                       type="button"
-                                      onClick={() => setModel('flash')}
+                                      onClick={() => { playSound('click'); setModel('flash'); }}
                                       className={`p-2 rounded-lg border text-left transition-all ${
                                           model === 'flash'
                                           ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
@@ -243,6 +249,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                                   <button
                                       type="button"
                                       onClick={() => {
+                                          playSound('click');
                                           if (plan.allowedModels.includes('pro')) setModel('pro');
                                           else setShowPricing(true);
                                       }}
@@ -275,6 +282,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                                                 key={opt}
                                                 type="button"
                                                 onClick={() => {
+                                                    playSound('click');
                                                     if (isDisabled) setShowPricing(true);
                                                     else setAggressiveness(opt as any);
                                                 }}
@@ -321,6 +329,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                                     </button>
                                 ))}
                             </div>
+                            {plan.id === 'free' && <p className="text-[10px] text-amber-400 mt-1">Free plan cannot enable tools. Upgrade to unlock.</p>}
                         </div>
                     </div>
                 )}
