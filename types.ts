@@ -1,3 +1,4 @@
+
 export enum Severity {
   CRITICAL = 'Critical',
   HIGH = 'High',
@@ -110,8 +111,10 @@ export interface ScanConfig {
   model: 'flash' | 'pro' | 'lite';
 }
 
+// Added soundEffects property to fix errors in App.tsx
 export interface AppSettings {
   highContrast: boolean;
+  soundEffects: boolean;
   telemetry: boolean;
 }
 
