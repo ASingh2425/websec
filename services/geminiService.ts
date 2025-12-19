@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ScanResult, Severity, ScanConfig } from "../types";
 
@@ -75,11 +76,10 @@ export const runScan = async (
   config: ScanConfig = { aggressiveness: 'deep', sensitivity: 'all-findings', model: 'pro' }
 ): Promise<ScanResult> => {
   
-  // Directly initialize using process.env.API_KEY within the function to ensure capture.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelName = config.model === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
 
-  const systemInstruction = `You are WebSec-AI, a Senior Offensive Security Auditor.
+  const systemInstruction = `You are WebSec Ultra, a Senior Offensive Security Auditor platform.
   AUDIT PROTOCOL:
   1. ANALYZE TARGET: Evaluate the probable infrastructure of "${target}".
   2. SIMULATE ATTACKS: Reason about potential vulnerabilities including SQLi, XSS, SSRF, BOLA/IDOR, and Logic Flaws.
@@ -124,7 +124,7 @@ export const queryAgent = async (history: {role: string, content: string}[], mes
             model: 'gemini-3-flash-preview',
             contents: `Context:\n${history.map(m => `${m.role}: ${m.content}`).join('\n')}\nRequest: ${message}`,
             config: { 
-                systemInstruction: "You are Sentinel, a technical security assistant. Provide expert, concise advice.",
+                systemInstruction: "You are Sentinel, a technical security assistant for WebSec Ultra. Provide expert, concise advice.",
                 thinkingConfig: { thinkingBudget: 1000 }
             }
         });
