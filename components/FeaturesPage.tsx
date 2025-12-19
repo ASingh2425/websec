@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { PublicNavbar } from './PublicNavbar';
 import { Zap, Globe, Lock, Code, Database, Server, Layers, FileSearch } from 'lucide-react';
@@ -62,7 +63,7 @@ export const FeaturesPage: React.FC<FeaturesPageProps> = ({ onNavigate }) => {
             </div>
             <h1 className="text-4xl md:text-5xl font-display font-bold mb-6">Full Spectrum Coverage</h1>
             <p className="text-xl text-cyber-text-secondary max-w-3xl mx-auto leading-relaxed">
-                From simple XSS to complex Business Logic flaws, WebSec-AI covers the entire attack surface.
+                From simple XSS to complex Business Logic flaws, WebSec Ultra covers the entire attack surface.
             </p>
         </div>
 
@@ -82,7 +83,7 @@ export const FeaturesPage: React.FC<FeaturesPageProps> = ({ onNavigate }) => {
       </main>
 
       <footer className="py-8 text-center text-cyber-text-muted text-sm border-t border-cyber-border relative z-10 bg-cyber-bg">
-        <p>© 2024 WebSec AI. All systems nominal.</p>
+        <p>© 2024 WebSec Ultra. All systems nominal.</p>
       </footer>
     </div>
   );
