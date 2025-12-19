@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { PublicNavbar } from './PublicNavbar';
 import { Target, Users, ShieldCheck, Award } from 'lucide-react';
@@ -27,7 +28,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4 font-display">Precision Engineering</h3>
                 <p className="text-cyber-text-secondary leading-relaxed">
-                    We built WebSec-AI because traditional scanners are noisy. They flood you with false positives. 
+                    We built WebSec Ultra because traditional scanners are noisy. They flood you with false positives. 
                     Our engine uses reasoning models to validate findings with actual Proof-of-Concept payloads, 
                     saving your security team hundreds of hours.
                 </p>
@@ -55,7 +56,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
       </main>
 
       <footer className="py-8 text-center text-cyber-text-muted text-sm border-t border-cyber-border relative z-10 bg-cyber-bg">
-        <p>© 2024 WebSec AI. All rights reserved.</p>
+        <p>© 2024 WebSec Ultra. All rights reserved.</p>
       </footer>
     </div>
   );
