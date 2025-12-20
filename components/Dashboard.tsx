@@ -1,59 +1,107 @@
-
 import React, { useState } from 'react';
 import { ScanResult } from '../types';
-import { Lock as LockIcon, Database, Globe, Layers, Clock, ArrowUpRight, Download, Server, AlertTriangle, HelpCircle, Briefcase, ShieldCheck, Map, Network, Microscope, Shield, Zap } from 'lucide-react';
+import { 
+  Lock as LockIcon, 
+  Database, 
+  Globe, 
+  Layers, 
+  Clock, 
+  ArrowUpRight, 
+  Download, 
+  Server, 
+  AlertTriangle, 
+  HelpCircle, 
+  Briefcase, 
+  ShieldCheck, 
+  Map, 
+  Network, 
+  Microscope, 
+  Shield, 
+  Zap, 
+  Activity 
+} from 'lucide-react';
 import { VulnerabilityList } from './VulnerabilityList';
 import { ProbableVulnerabilityList } from './ProbableVulnerabilityList';
 import ReactMarkdown from 'react-markdown';
 import { TechStack } from './TechStack';
 import { securityService } from '../services/securityService';
+import { PricingModal } from './PricingModal';
 
 interface DashboardProps {
   data: ScanResult;
   history?: ScanResult[];
-  onOpenPricing: () => void;
+  // Added onOpenPricing to DashboardProps to resolve type error in App.tsx
+  onOpenPricing?: () => void;
 }
 
-const MetricCard = ({ title, score, icon: Icon, color, tip }: any) => (
-    <div className="cyber-card p-6 flex flex-col justify-between h-full group bg-cyber-card hover:bg-cyber-cardHighlight transition-all duration-300">
-        <div className="flex justify-between items-start mb-4">
-            <div>
-                <h4 className="text-cyber-text-muted text-[10px] font-bold uppercase tracking-widest font-display flex items-center gap-1.5 mb-1">
-                  {title}
-                  <div className="group/tooltip relative cursor-help">
-                    <HelpCircle size={12} className="text-slate-500 hover:text-cyber-primary transition-colors" />
-                    <div className="absolute left-0 bottom-full mb-2 w-48 p-3 bg-cyber-card border border-cyber-border text-cyber-text-main text-xs rounded-lg shadow-xl opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 font-sans leading-relaxed">
-                      {tip}
+const MetricCard = ({ title, score, icon: Icon, color, tip }: any) => {
+    const [isPinned, setIsPinned] = useState(false);
+
+    return (
+        <div 
+            className="cyber-card p-6 flex flex-col justify-between h-full group bg-cyber-card hover:bg-cyber-cardHighlight transition-all duration-300 relative"
+            style={{ overflow: 'visible' }} // Critical: Allow tooltip to pop out
+        >
+            <div className="flex justify-between items-start mb-4">
+                <div className="relative">
+                    <h4 className="text-cyber-text-muted text-[10px] font-bold uppercase tracking-widest font-display flex items-center gap-1.5 mb-1">
+                      {title}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setIsPinned(!isPinned); }}
+                        className="cursor-help focus:outline-none"
+                        aria-label="View scoring details"
+                      >
+                        <HelpCircle size={12} className={`${isPinned ? 'text-cyber-primary' : 'text-slate-500'} hover:text-cyber-primary transition-colors`} />
+                      </button>
+                    </h4>
+                    
+                    {/* Tooltip implementation */}
+                    <div className={`
+                        absolute left-0 bottom-full mb-3 w-72 p-4 
+                        bg-cyber-cardHighlight border border-cyber-primary/40 
+                        text-cyber-text-main text-xs rounded-xl 
+                        shadow-[0_20px_50px_rgba(0,0,0,0.8)] 
+                        transition-all transform pointer-events-none z-[100] font-sans leading-relaxed backdrop-blur-md
+                        ${isPinned || 'group-hover:opacity-100 group-hover:translate-y-0 opacity-0 translate-y-2'}
+                        ${isPinned ? 'opacity-100 translate-y-0 pointer-events-auto' : ''}
+                    `}>
+                        <div className="font-bold text-cyber-primary mb-2 uppercase tracking-tighter flex items-center gap-1.5">
+                            <Activity size={12} /> Scoring Methodology
+                        </div>
+                        <div className="text-cyber-text-secondary border-l-2 border-cyber-primary/20 pl-3">
+                            {tip}
+                        </div>
+                        <div className="absolute left-4 top-full w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-cyber-primary/40"></div>
                     </div>
-                  </div>
-                </h4>
+                </div>
+                <div 
+                  className="p-2 rounded-xl transition-transform group-hover:scale-110 duration-300"
+                  style={{ backgroundColor: `${color}15`, color: color }}
+                >
+                    <Icon size={20} />
+                </div>
             </div>
-            <div 
-              className="p-2 rounded-xl transition-transform group-hover:scale-110 duration-300"
-              style={{ backgroundColor: `${color}15`, color: color }}
-            >
-                <Icon size={20} />
-            </div>
-        </div>
-        
-        <div className="flex items-end gap-3">
-             <div className="text-4xl font-display font-bold text-cyber-text-main">{score}</div>
-             <div className="flex-1 pb-2">
-                 <div className="w-full bg-cyber-bg h-2 rounded-full overflow-hidden">
-                     <div 
-                        className="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden" 
-                        style={{ width: `${score}%`, backgroundColor: color }}
-                     >
-                       <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+            
+            <div className="flex items-end gap-3">
+                 <div className="text-4xl font-display font-bold text-cyber-text-main">{score}</div>
+                 <div className="flex-1 pb-2">
+                     <div className="w-full bg-cyber-bg h-2 rounded-full overflow-hidden">
+                         <div 
+                            className="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden" 
+                            style={{ width: `${score}%`, backgroundColor: color }}
+                         >
+                           <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                         </div>
                      </div>
                  </div>
-             </div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 export const Dashboard: React.FC<DashboardProps> = ({ data, onOpenPricing }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'vulnerabilities' | 'heuristic' | 'assets' | 'ports'>('overview');
+  const [showPricing, setShowPricing] = useState(false);
   const plan = securityService.getCurrentPlan();
 
   const totalVulns = data.vulnerabilities.length;
@@ -73,14 +121,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onOpenPricing }) => 
 
   const handleDownload = () => {
      if (!plan.allowDownload) {
-         onOpenPricing();
+         // Use the passed onOpenPricing prop if available, otherwise use local state
+         if (onOpenPricing) onOpenPricing();
+         else setShowPricing(true);
          return;
      }
-     // Mock download functionality
      alert("Downloading Report PDF...");
   };
 
   return (
+    <>
+    <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} onPlanUpdated={() => {}} />
+    
     <div className="w-full max-w-7xl mx-auto space-y-8 pb-20 animate-fade-in-up">
       
       {/* Tab Navigation */}
@@ -178,10 +230,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onOpenPricing }) => 
 
           {/* Metrics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <MetricCard title="Authentication" score={data.securityMetrics.authScore} icon={LockIcon} color="#A78BFA" tip="How strong your login & session management is." />
-              <MetricCard title="Database" score={data.securityMetrics.dbScore} icon={Database} color="#FBBF24" tip="Resistance to SQL Injection and data leaks." />
-              <MetricCard title="Network" score={data.securityMetrics.networkScore} icon={Globe} color="#818CF8" tip="SSL/TLS configuration and port exposure." />
-              <MetricCard title="Client Side" score={data.securityMetrics.clientScore} icon={Layers} color="#2DD4BF" tip="Protection against XSS and malicious scripts." />
+              <MetricCard 
+                title="Authentication" 
+                score={data.securityMetrics.authScore} 
+                icon={LockIcon} 
+                color="#A78BFA" 
+                tip="Analyzes session management entropy, credential storage hashing algorithms, cookie security attributes (HttpOnly, Secure, SameSite), and Multi-Factor Authentication (MFA) implementation robustness." 
+              />
+              <MetricCard 
+                title="Database" 
+                score={data.securityMetrics.dbScore} 
+                icon={Database} 
+                color="#FBBF24" 
+                tip="Derived from resistance to SQL/NoSQL injection vectors, enforcement of parameterized queries, database error handling to prevent metadata leakage, and proper encryption of PII data at rest." 
+              />
+              <MetricCard 
+                title="Network" 
+                score={data.securityMetrics.networkScore} 
+                icon={Globe} 
+                color="#818CF8" 
+                tip="Calculated based on SSL/TLS certificate validity and cipher suite strength, HSTS implementation, service surface area reduction, and exposure of internal infrastructure via unnecessary open ports." 
+              />
+              <MetricCard 
+                title="Client Side" 
+                score={data.securityMetrics.clientScore} 
+                icon={Layers} 
+                color="#2DD4BF" 
+                tip="Evaluates Cross-Site Scripting (XSS) prevention, Content Security Policy (CSP) depth, DOM-based vulnerability mitigation, and protection against CSRF and UI redressing (Clickjacking) attacks." 
+              />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -204,7 +280,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onOpenPricing }) => 
                  <div className="mt-6 flex justify-end gap-3">
                     {probableVulns > 0 && (
                         <button 
-                            onClick={() => plan.showProbableVulns ? setActiveTab('heuristic') : onOpenPricing()}
+                            onClick={() => plan.showProbableVulns ? setActiveTab('heuristic') : (onOpenPricing ? onOpenPricing() : setShowPricing(true))}
                             className={`flex items-center gap-2 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors uppercase tracking-widest group bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-lg ${!plan.showProbableVulns && 'opacity-70 grayscale'}`}
                         >
                            {plan.showProbableVulns ? <Microscope size={14} /> : <LockIcon size={14} />} 
@@ -242,7 +318,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onOpenPricing }) => 
                     <p className="text-cyber-text-secondary max-w-md mb-6">
                         Unlock Probable Vulnerability analysis (Blind SQLi, IDOR, Logic Flaws) by upgrading your plan.
                     </p>
-                    <button onClick={onOpenPricing} className="px-6 py-3 bg-cyber-primary text-white rounded-lg font-bold shadow-glow hover:bg-cyber-primaryEnd transition-all">
+                    <button onClick={() => onOpenPricing ? onOpenPricing() : setShowPricing(true)} className="px-6 py-3 bg-cyber-primary text-white rounded-lg font-bold shadow-glow hover:bg-cyber-primaryEnd transition-all">
                         Upgrade Now
                     </button>
                 </div>
@@ -352,5 +428,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onOpenPricing }) => 
         </div>
       )}
     </div>
+    </>
   );
 };
