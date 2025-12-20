@@ -7,11 +7,11 @@ import { ProbableVulnerabilityList } from './ProbableVulnerabilityList';
 import ReactMarkdown from 'react-markdown';
 import { TechStack } from './TechStack';
 import { securityService } from '../services/securityService';
-import { PricingModal } from './PricingModal';
 
 interface DashboardProps {
   data: ScanResult;
   history?: ScanResult[];
+  onOpenPricing: () => void;
 }
 
 const MetricCard = ({ title, score, icon: Icon, color, tip }: any) => (
@@ -52,9 +52,8 @@ const MetricCard = ({ title, score, icon: Icon, color, tip }: any) => (
     </div>
 );
 
-export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ data, onOpenPricing }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'vulnerabilities' | 'heuristic' | 'assets' | 'ports'>('overview');
-  const [showPricing, setShowPricing] = useState(false);
   const plan = securityService.getCurrentPlan();
 
   const totalVulns = data.vulnerabilities.length;
@@ -74,7 +73,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   const handleDownload = () => {
      if (!plan.allowDownload) {
-         setShowPricing(true);
+         onOpenPricing();
          return;
      }
      // Mock download functionality
@@ -82,9 +81,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   };
 
   return (
-    <>
-    <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} onPlanUpdated={() => {}} />
-    
     <div className="w-full max-w-7xl mx-auto space-y-8 pb-20 animate-fade-in-up">
       
       {/* Tab Navigation */}
@@ -208,7 +204,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                  <div className="mt-6 flex justify-end gap-3">
                     {probableVulns > 0 && (
                         <button 
-                            onClick={() => plan.showProbableVulns ? setActiveTab('heuristic') : setShowPricing(true)}
+                            onClick={() => plan.showProbableVulns ? setActiveTab('heuristic') : onOpenPricing()}
                             className={`flex items-center gap-2 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors uppercase tracking-widest group bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-lg ${!plan.showProbableVulns && 'opacity-70 grayscale'}`}
                         >
                            {plan.showProbableVulns ? <Microscope size={14} /> : <LockIcon size={14} />} 
@@ -246,7 +242,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                     <p className="text-cyber-text-secondary max-w-md mb-6">
                         Unlock Probable Vulnerability analysis (Blind SQLi, IDOR, Logic Flaws) by upgrading your plan.
                     </p>
-                    <button onClick={() => setShowPricing(true)} className="px-6 py-3 bg-cyber-primary text-white rounded-lg font-bold shadow-glow hover:bg-cyber-primaryEnd transition-all">
+                    <button onClick={onOpenPricing} className="px-6 py-3 bg-cyber-primary text-white rounded-lg font-bold shadow-glow hover:bg-cyber-primaryEnd transition-all">
                         Upgrade Now
                     </button>
                 </div>
@@ -356,6 +352,5 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         </div>
       )}
     </div>
-    </>
   );
 };
