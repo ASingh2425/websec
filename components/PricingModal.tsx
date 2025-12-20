@@ -18,15 +18,9 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onP
   if (!isOpen) return null;
 
   const handlePurchase = async (planId: PlanType) => {
-    // Simulating initial click feedback
     setLoadingPlan(planId);
     await new Promise(r => setTimeout(r, 600));
     setLoadingPlan(null);
-    
-    // Instead of upgrading, show the maintenance page
-    // securityService.upgradePlan(planId); 
-    // onPlanUpdated();
-    
     setShowPaymentInfo(true);
   };
 
@@ -40,7 +34,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onP
       const isProcessing = loadingPlan === planId;
 
       return (
-        <div className={`cyber-card p-6 flex flex-col relative border-2 transition-all ${recommended ? 'border-cyber-primary scale-105 z-10 bg-[#161b2c]' : 'border-cyber-border bg-cyber-card hover:border-cyber-primary/50'}`}>
+        <div className={`cyber-card p-6 flex flex-col relative border-2 transition-all ${recommended ? 'border-cyber-primary scale-[1.02] lg:scale-105 z-10 bg-[#161b2c]' : 'border-cyber-border bg-cyber-card hover:border-cyber-primary/50'}`}>
             {recommended && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-cyber-primary text-white text-[10px] font-bold uppercase px-3 py-1 rounded-full shadow-glow">
                     Most Popular
@@ -63,7 +57,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onP
                 {features.map((feat: string, i: number) => (
                     <div key={i} className="flex items-start gap-2 text-sm text-cyber-text-secondary">
                         <Check size={16} className="text-emerald-400 shrink-0 mt-0.5" />
-                        <span>{feat}</span>
+                        <span className="leading-tight">{feat}</span>
                     </div>
                 ))}
             </div>
@@ -84,8 +78,8 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onP
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-        <div className="w-full max-w-6xl h-auto max-h-[90vh] overflow-y-auto custom-scrollbar bg-cyber-bg border border-cyber-border rounded-2xl relative flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
+        <div className="w-full max-w-7xl h-auto max-h-[95vh] overflow-y-auto custom-scrollbar bg-cyber-bg border border-cyber-border rounded-2xl relative flex flex-col">
             <button 
                 onClick={handleClose} 
                 className="absolute top-4 right-4 p-2 text-cyber-text-muted hover:text-cyber-text-main transition-colors z-20"
@@ -94,21 +88,19 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onP
             </button>
 
             {showPaymentInfo ? (
-                <div className="p-4">
+                <div className="p-4 flex-1 flex flex-col">
                     <PaymentPlaceholder onBack={() => setShowPaymentInfo(false)} />
                 </div>
             ) : (
-                <>
-                    <div className="p-8 md:p-12 text-center">
-                        <h2 className="text-3xl font-display font-bold text-cyber-text-main mb-4">Upgrade Your Arsenal</h2>
-                        <p className="text-cyber-text-secondary max-w-2xl mx-auto">
+                <div className="flex-1 flex flex-col py-12 px-6 lg:px-12">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl md:text-4xl font-display font-bold text-cyber-text-main mb-4">Upgrade Your Arsenal</h2>
+                        <p className="text-cyber-text-secondary max-w-2xl mx-auto text-sm md:text-base">
                             Unlock enterprise-grade scanning capabilities, automated remediation, and advanced AI reasoning models.
                         </p>
                     </div>
 
-                    <div className="px-8 pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        
-                        {/* One Time 350 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 items-stretch">
                         <PlanCard 
                             planId="onetime_350"
                             icon={Zap}
@@ -121,8 +113,6 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onP
                                 "Downloadable PDF Report"
                             ]}
                         />
-
-                        {/* One Time 500 */}
                         <PlanCard 
                             planId="onetime_500"
                             icon={Database}
@@ -137,8 +127,6 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onP
                                 "Downloadable PDF Report"
                             ]}
                         />
-
-                        {/* Sub 1899 */}
                         <PlanCard 
                             planId="sub_1899"
                             icon={Shield}
@@ -152,8 +140,6 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onP
                                 "No Solutions Included"
                             ]}
                         />
-
-                        {/* Sub 2999 */}
                         <PlanCard 
                             planId="sub_2999"
                             icon={Play}
@@ -167,9 +153,12 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onP
                                 "Probable Vulnerabilities"
                             ]}
                         />
-
                     </div>
-                </>
+                    
+                    <div className="mt-12 text-center text-[10px] text-cyber-text-muted uppercase tracking-widest font-bold">
+                        Secure 256-bit encrypted checkout via central gateway
+                    </div>
+                </div>
             )}
         </div>
     </div>
