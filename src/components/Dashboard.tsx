@@ -12,6 +12,8 @@ import { PricingModal } from './PricingModal';
 interface DashboardProps {
   data: ScanResult;
   history?: ScanResult[];
+  // Added onOpenPricing to DashboardProps to resolve type error in App.tsx
+  onOpenPricing?: () => void;
 }
 
 const MetricCard = ({ title, score, icon: Icon, color, tip }: any) => (
@@ -52,7 +54,7 @@ const MetricCard = ({ title, score, icon: Icon, color, tip }: any) => (
     </div>
 );
 
-export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ data, onOpenPricing }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'vulnerabilities' | 'heuristic' | 'assets' | 'ports'>('overview');
   const [showPricing, setShowPricing] = useState(false);
   const plan = securityService.getCurrentPlan();
@@ -74,7 +76,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   const handleDownload = () => {
      if (!plan.allowDownload) {
-         setShowPricing(true);
+         // Use the passed onOpenPricing prop if available, otherwise use local state
+         if (onOpenPricing) onOpenPricing();
+         else setShowPricing(true);
          return;
      }
      // Mock download functionality
@@ -100,7 +104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                 }`}
             >
                 {tab === 'assets' ? 'Discovered Assets' : tab === 'heuristic' ? 'Heuristic Analysis (Deep)' : tab}
-                {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyber-primary to-cyber-primaryEnd shadow-[0_0_10px_rgba(129,140,248,0.4)]"></div>}
+                {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyber-primary to-cyber-primaryEnd shadow-[0_0_10px_rgba(129,140_248,0.4)]"></div>}
             </button>
         ))}
       </div>
@@ -208,7 +212,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                  <div className="mt-6 flex justify-end gap-3">
                     {probableVulns > 0 && (
                         <button 
-                            onClick={() => plan.showProbableVulns ? setActiveTab('heuristic') : setShowPricing(true)}
+                            onClick={() => plan.showProbableVulns ? setActiveTab('heuristic') : (onOpenPricing ? onOpenPricing() : setShowPricing(true))}
                             className={`flex items-center gap-2 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors uppercase tracking-widest group bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-lg ${!plan.showProbableVulns && 'opacity-70 grayscale'}`}
                         >
                            {plan.showProbableVulns ? <Microscope size={14} /> : <LockIcon size={14} />} 
@@ -246,7 +250,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                     <p className="text-cyber-text-secondary max-w-md mb-6">
                         Unlock Probable Vulnerability analysis (Blind SQLi, IDOR, Logic Flaws) by upgrading your plan.
                     </p>
-                    <button onClick={() => setShowPricing(true)} className="px-6 py-3 bg-cyber-primary text-white rounded-lg font-bold shadow-glow hover:bg-cyber-primaryEnd transition-all">
+                    <button onClick={() => onOpenPricing ? onOpenPricing() : setShowPricing(true)} className="px-6 py-3 bg-cyber-primary text-white rounded-lg font-bold shadow-glow hover:bg-cyber-primaryEnd transition-all">
                         Upgrade Now
                     </button>
                 </div>
