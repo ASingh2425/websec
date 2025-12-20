@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, Globe, Code, Play, Zap, Shield, Settings2, Cpu, BrainCircuit, Lock, Flashlight } from 'lucide-react';
 import { ScanModule, ScanAggressiveness, ScanSensitivity, ScanConfig } from '../types';
 import { securityService } from '../services/securityService';
-import { PricingModal } from './PricingModal';
 import { playSound, resumeAudio } from '../utils/audio';
 
 interface ScanFormProps {
   onScan: (target: string, type: 'url' | 'code', modules: ScanModule[], config: ScanConfig) => void;
   isScanning: boolean;
+  onOpenPricing: () => void;
 }
 
 const TOOLS = [
@@ -23,7 +24,7 @@ const TOOLS = [
   { id: 'metasploit', name: 'Metasploit' },
 ];
 
-export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
+export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning, onOpenPricing }) => {
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<'url' | 'code'>('url');
   const [error, setError] = useState('');
@@ -31,7 +32,6 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
   // Plan & State
   const [plan, setPlan] = useState(securityService.getCurrentPlan());
   const [credits, setCredits] = useState(securityService.getCredits());
-  const [showPricing, setShowPricing] = useState(false);
 
   // Config State
   const [activeTools, setActiveTools] = useState<Record<string, boolean>>({});
@@ -80,7 +80,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
     await resumeAudio();
     
     if (credits <= 0 && plan.maxScans !== -1) {
-        setShowPricing(true);
+        onOpenPricing();
         return;
     }
 
@@ -110,7 +110,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
       } else {
           const currentCount = Object.values(activeTools).filter(Boolean).length;
           if (currentCount >= plan.maxTools) {
-              if (plan.id === 'free') setShowPricing(true);
+              if (plan.id === 'free') onOpenPricing();
               return;
           }
           setActiveTools(prev => ({...prev, [id]: true}));
@@ -118,9 +118,6 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
   };
 
   return (
-    <>
-    <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} onPlanUpdated={refreshPlan} />
-
     <div className="w-full max-w-3xl mx-auto mt-12 animate-fade-in-up">
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-card border border-cyber-border text-cyber-primary text-xs font-bold uppercase tracking-widest mb-6 shadow-glow">
@@ -139,7 +136,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                 {plan.maxScans === -1 ? 'Unlimited Scans' : `${credits} Scan${credits !== 1 ? 's' : ''} Remaining`}
             </span>
             {credits <= 0 && plan.maxScans !== -1 && (
-                <button onClick={() => { playSound('click'); setShowPricing(true); }} className="ml-3 text-xs font-bold text-emerald-400 hover:underline">Get More</button>
+                <button onClick={() => { playSound('click'); onOpenPricing(); }} className="ml-3 text-xs font-bold text-emerald-400 hover:underline">Get More</button>
             )}
         </div>
       </div>
@@ -251,7 +248,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                                       onClick={() => {
                                           playSound('click');
                                           if (plan.allowedModels.includes('pro')) setModel('pro');
-                                          else setShowPricing(true);
+                                          else onOpenPricing();
                                       }}
                                       className={`p-2 rounded-lg border text-left transition-all relative overflow-hidden ${
                                           model === 'pro'
@@ -283,7 +280,7 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
                                                 type="button"
                                                 onClick={() => {
                                                     playSound('click');
-                                                    if (isDisabled) setShowPricing(true);
+                                                    if (isDisabled) onOpenPricing();
                                                     else setAggressiveness(opt as any);
                                                 }}
                                                 className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold uppercase border transition-all h-full relative overflow-hidden ${
@@ -366,6 +363,5 @@ export const ScanForm: React.FC<ScanFormProps> = ({ onScan, isScanning }) => {
         </form>
       </div>
     </div>
-    </>
   );
 };
