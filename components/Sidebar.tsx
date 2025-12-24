@@ -90,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div>
                <h1 className="text-xl font-display font-extrabold text-cyber-text-main tracking-tight leading-none whitespace-nowrap">
-                WebSec
+                WebSec Ultra
               </h1>
               <span className="text-[10px] font-bold text-cyber-primary tracking-[0.2em] uppercase">Enterprise</span>
             </div>
