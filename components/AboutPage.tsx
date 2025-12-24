@@ -38,18 +38,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4 font-display">For Developers, By Hackers</h3>
                 <p className="text-cyber-text-secondary leading-relaxed">
-                    Founded by ex-NSA red teamers and AI researchers, we bridge the gap between offensive security and 
+                    We bridge the gap between offensive security and 
                     defensive engineering. We speak HTTP, but we also speak React, Python, and Go.
                 </p>
-            </div>
-        </div>
-
-        <div className="text-center mb-16 animate-fade-in-up delay-200">
-            <h2 className="text-3xl font-display font-bold mb-12">Trusted By The Industry</h2>
-            <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale">
-                <div className="flex items-center gap-2 text-2xl font-bold font-display"><ShieldCheck /> CyberCorp</div>
-                <div className="flex items-center gap-2 text-2xl font-bold font-display"><Award /> SecureNet</div>
-                <div className="flex items-center gap-2 text-2xl font-bold font-display"><Target /> DefenseGrid</div>
             </div>
         </div>
       </main>
